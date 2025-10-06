@@ -1,13 +1,77 @@
-[package]
-name = "oxidize-mail"
-version = "0.1.0"
-edition = "2024"
-
 [workspace]
+resolver = "2"
 members = [
-	"app",
-	"ui",
-	"shared",
-	"api",
+    "crates/oxidize-mail",
+    "crates/oxidize-mail-core",
+    "crates/oxidize-mail-parser",
+    "crates/oxidize-mail-storage",
 ]
-[dependencies]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/GhostVox/oxidize-mail"
+
+[workspace.dependencies]
+# Core GUI Framework (GTK4)
+gtk4 = { version = "0.10", features = ["v4_10"] }
+gdk4 = "0.10"
+glib = { version = "0.21", default-features = true }
+gio = { version = "0.21", default-features = true }
+webkit6 = "0.5"
+
+# Force zbus to have default features (fixes async-io issue)
+zbus = { version = "5", features=["tokio"] }
+
+# Email Protocol Libraries
+async-imap = "0.9"
+lettre = "0.11"
+mail-parser = "0.6"
+
+# Authentication & Security
+oauth2 = "4.4"
+rustls = "0.21"
+rustls-native-certs = "0.6"
+
+# Async Runtime & Networking
+#specific features for tokio to reduce binary size
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "net", "sync", "time"] }
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+
+# Database & Storage
+rusqlite = { version = "0.29", features = ["bundled", "chrono"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Date/Time Handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Text Processing & Search
+regex = "1.9"
+html2text = "0.6"
+pulldown-cmark = "0.9"
+
+# Configuration & Logging
+config = "0.13"
+log = "0.4"
+env_logger = "0.10"
+
+# Utilities
+uuid = { version = "1.4", features = ["v4"] }
+base64 = "0.21"
+mime = "0.3"
+url = "2.4"
+
+# Optional features
+tantivy = "0.20"
+sourceview5 = "0.10"
+notify-rust = "4.11"
+secret-service = "5.1"
+image = "0.24"
+
+# Dev dependencies
+tokio-test = "0.4"
+tempfile = "3.7"
+mockall = "0.11"

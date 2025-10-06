@@ -1,0 +1,29 @@
+[package]
+name = "oxidize-mail-parser"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Email parsing and MIME handling for Oxidize Mail"
+
+[dependencies]
+# Email parsing
+mail-parser.workspace = true
+
+# Date/Time handling
+chrono.workspace = true
+
+# Text processing
+regex.workspace = true
+html2text.workspace = true
+pulldown-cmark.workspace = true
+
+# Utilities
+log.workspace = true
+serde.workspace = true
+mime.workspace = true
+base64.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
