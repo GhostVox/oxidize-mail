@@ -54,19 +54,19 @@ Before you begin, you'll need to install the necessary system dependencies for G
 
 **Arch Linux**:
 
-```bash
+```shell
 sudo pacman -S gtk4 webkit2gtk-4.1 openssl pkg-config sqlite
 ```
 
 **Ubuntu/Debian**:
 
-```bash
+```shell
 sudo apt install libgtk-4-dev libwebkit2gtk-4.1-dev libssl-dev pkg-config libsqlite3-dev
 ```
 
 **macOS (via Homebrew)**:
 
-```bash
+```shell
 brew install gtk4 webkitgtk pkg-config openssl sqlite
 ```
 
@@ -74,7 +74,7 @@ brew install gtk4 webkitgtk pkg-config openssl sqlite
 
 1. Clone the repository:
 
-```bash
+```shell
 git clone https://github.com/GhostVox/oxidize-mail.git
 cd oxidize-mail
 ```
@@ -82,14 +82,14 @@ cd oxidize-mail
 
 Since this is a workspace, you can build all the crates at once.
 
-```bash
+```shell
 cargo build --workspace
 ```
 
 3. Run the application:
 
 To run the main GUI application, specify the oxidize-mail package.
-```bash
+```shell
 cargo run -p oxidize-mail
 ```
 
