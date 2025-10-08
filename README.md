@@ -64,6 +64,11 @@ sudo pacman -S gtk4 webkit2gtk-4.1 openssl pkg-config sqlite
 sudo apt install libgtk-4-dev libwebkit2gtk-4.1-dev libssl-dev pkg-config libsqlite3-dev
 ```
 
+**Fedora**:
+```shell
+sudo dnf install gtk4-devel webkit2gtk4.1-devel pkg-config openssl-devel sqlite-devel webkitgtk6.0-devel
+```
+
 **macOS (via Homebrew)**:
 
 ```shell
