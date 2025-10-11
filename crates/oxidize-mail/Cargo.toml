@@ -34,7 +34,8 @@ env_logger.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 config.workspace = true
-
+dirs = "6.0"
+toml ="0.9.8"
 # --- Optional dependencies ---
 notify-rust = { workspace = true, optional = true }
 secret-service = { workspace = true, optional = true, features = ["rt-tokio-crypto-rust"] }
