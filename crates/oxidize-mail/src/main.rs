@@ -2,7 +2,7 @@ use gtk4::glib::clone;
 use gtk4::prelude::*;
 mod config;
 use gtk4::{
-    gdk::Display, glib, Application, ApplicationWindow, Box, CssProvider, HeaderBar, Image, Label,
+    gdk::Display, gio, glib, Application, ApplicationWindow, Box, CssProvider, HeaderBar, Label,
     ListBox, Orientation, Paned, PolicyType, ScrolledWindow, Settings,
 };
 
@@ -12,10 +12,22 @@ use std::rc::Rc;
 const APP_ID: &str = "com.oxidize.mail";
 
 fn main() -> glib::ExitCode {
-    let app = Application::builder().application_id(APP_ID).build();
+    // Register resources first
+    register_resources();
 
+    let app = Application::builder().application_id(APP_ID).build();
     app.connect_activate(build_ui);
     app.run()
+}
+
+fn register_resources() {
+    // Include the compiled .gresource file that was created by build.rs
+    let resource_bytes = glib::Bytes::from_static(include_bytes!(concat!(
+        env!("OUT_DIR"),
+        "/oxidize-mail.gresource"
+    )));
+    let resource = gio::Resource::from_data(&resource_bytes).expect("Failed to load GResource");
+    gio::resources_register(&resource);
 }
 
 fn build_ui(app: &Application) {
@@ -31,30 +43,30 @@ fn build_ui(app: &Application) {
         .default_height(900)
         .build();
 
-    // Set the window icon
+    // Set the window icon using the icon name (maps to GResource alias)
     let color_scheme = settings.borrow().get_preferred_color_scheme().clone();
 
-    match color_scheme {
-        config::ColorScheme::Light => {
-            window.set_icon_name(Some("oxidize_mail_light.png"));
-        }
-        config::ColorScheme::Dark => {
-            window.set_icon_name(Some("oxidize_mail_dark.png"));
-        }
+    let icon_name = match color_scheme {
+        config::ColorScheme::Light => "oxidize_mail_light",
+        config::ColorScheme::Dark => "oxidize_mail_dark",
         config::ColorScheme::System => {
             let gtk_settings = Settings::default().expect("Could not get GTK settings");
             let prefer_dark = gtk_settings.property::<bool>("gtk-application-prefer-dark-theme");
             if prefer_dark {
-                window.set_icon_name(Some("oxidize_mail_dark.png"));
+                "oxidize_mail_dark"
             } else {
-                window.set_icon_name(Some("oxidize_mail_light.png"));
+                "oxidize_mail_light"
             }
         }
-    }
+    };
+
+    // Set the window icon name
+    window.set_icon_name(Some(icon_name));
 
     // Header bar
     let header = HeaderBar::new();
     header.set_show_title_buttons(true);
+
     let title = Label::new(Some("All Inboxes"));
     title.add_css_class("title");
 
@@ -62,6 +74,7 @@ fn build_ui(app: &Application) {
     let title_rc = Rc::new(RefCell::new(title.clone()));
 
     header.set_title_widget(Some(&title));
+
     window.set_titlebar(Some(&header));
 
     // Main container - horizontal paned (3 columns)
@@ -108,10 +121,11 @@ fn build_ui(app: &Application) {
     window.present();
 }
 
-/// This function loads the css from style.css and applies it to the application.
+/// This function loads the CSS from our GResource and applies it to the application.
 fn load_css() {
     let provider = CssProvider::new();
-    provider.load_from_resource("style.css");
+    // Load CSS from the GResource using the full path
+    provider.load_from_resource("/com/oxidize/mail/css/style.css");
 
     gtk4::style_context_add_provider_for_display(
         &Display::default().expect("Could not connect to a display."),

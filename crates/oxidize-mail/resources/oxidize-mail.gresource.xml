@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<gresources>
+  <gresource prefix="/com/oxidize/mail">
+    <!-- CSS Stylesheets -->
+    <file>css/style.css</file>
+
+    <!-- Application Icons -->
+    <file alias="oxidize_mail_light.png">icons/oxidize_mail_light.png</file>
+    <file alias="oxidize_mail_dark.png">icons/oxidize_mail_dark.png</file>
+
+    <!-- UI Files (for future use) -->
+    <!-- <file>ui/main_window.ui</file> -->
+    <!-- <file>ui/preferences.ui</file> -->
+  </gresource>
+</gresources>
