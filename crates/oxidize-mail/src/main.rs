@@ -29,7 +29,33 @@ fn register_resources() {
     let resource = gio::Resource::from_data(&resource_bytes).expect("Failed to load GResource");
     gio::resources_register(&resource);
 }
+fn setup_application_icon(settings: &config::AppConfig) {
+    use gtk4::IconTheme;
 
+    let icon_theme =
+        IconTheme::for_display(&Display::default().expect("Could not connect to display"));
+
+    // Add resource path to icon theme search paths
+    icon_theme.add_resource_path("/com/oxidize/mail/icons");
+
+    // Determine which icon to use based on color scheme
+    let color_scheme = settings.get_preferred_color_scheme();
+    let icon_name = match color_scheme {
+        config::ColorScheme::Light => "oxidize-mail-light",
+        config::ColorScheme::Dark => "oxidize-mail-dark",
+        config::ColorScheme::System => {
+            let gtk_settings = Settings::default().expect("Could not get GTK settings");
+            let prefer_dark = gtk_settings.property::<bool>("gtk-application-prefer-dark-theme");
+            if prefer_dark {
+                "oxidize-mail-dark"
+            } else {
+                "oxidize-mail-light"
+            }
+        }
+    };
+
+    println!("Setting icon: {}", icon_name);
+}
 fn build_ui(app: &Application) {
     // Load custom CSS
     load_css();
@@ -43,26 +69,8 @@ fn build_ui(app: &Application) {
         .default_height(900)
         .build();
 
-    // Set the window icon using the icon name (maps to GResource alias)
-    let color_scheme = settings.borrow().get_preferred_color_scheme().clone();
-
-    let icon_name = match color_scheme {
-        config::ColorScheme::Light => "oxidize_mail_light",
-        config::ColorScheme::Dark => "oxidize_mail_dark",
-        config::ColorScheme::System => {
-            let gtk_settings = Settings::default().expect("Could not get GTK settings");
-            let prefer_dark = gtk_settings.property::<bool>("gtk-application-prefer-dark-theme");
-            if prefer_dark {
-                "oxidize_mail_dark"
-            } else {
-                "oxidize_mail_light"
-            }
-        }
-    };
-
-    // Set the window icon name
-    window.set_icon_name(Some(icon_name));
-
+    // Set the window icon based on the preferred color scheme
+    window.set_icon_name(Some("oxidize-mail"));
     // Header bar
     let header = HeaderBar::new();
     header.set_show_title_buttons(true);

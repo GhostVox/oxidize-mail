@@ -2461,6 +2461,7 @@ dependencies = [
  "serde_json",
  "sourceview5",
  "tantivy",
+ "tempfile",
  "tokio",
  "toml 0.9.8",
  "webkit6",
