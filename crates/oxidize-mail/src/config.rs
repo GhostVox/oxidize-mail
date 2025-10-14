@@ -54,6 +54,10 @@ impl AppConfig {
     pub fn get_preferred_color_scheme(&self) -> &ColorScheme {
         &self.preferred_color_scheme
     }
+
+    pub fn update_selected_folder(&mut self, folder: &str) {
+        self.selected_folder = folder.to_string();
+    }
 }
 
 #[cfg(test)]
@@ -210,4 +214,3 @@ selected_folder = "📥 All Inboxes"
         assert_eq!(config.preferred_color_scheme, ColorScheme::System);
     }
 }
-

@@ -62,7 +62,7 @@ fn build_ui(app: &Application) {
     // Load custom CSS
     load_css();
     // Load the App config
-    let settings = Rc::new(RefCell::new(config::AppConfig::load()));
+    let settings_rc = Rc::new(RefCell::new(config::AppConfig::load()));
 
     let window = ApplicationWindow::builder()
         .application(app)
@@ -77,7 +77,7 @@ fn build_ui(app: &Application) {
     let header = HeaderBar::new();
     header.set_show_title_buttons(true);
 
-    let title = Label::new(Some("All Inboxes"));
+    let title = Label::new(Some(settings_rc.borrow().clone()));
     title.add_css_class("title");
 
     // Wrap title in Rc<RefCell> for shared mutable access
@@ -92,7 +92,7 @@ fn build_ui(app: &Application) {
 
     // LEFT PANE: Folder sidebar
     //  clone the current title for use in the sidebar creation
-    let folder_sidebar = create_folder_sidebar(title_rc.clone());
+    let folder_sidebar = create_folder_sidebar(title_rc.clone(), settings_rc.clone());
     main_paned.set_start_child(Some(&folder_sidebar));
     main_paned.set_resize_start_child(false);
     main_paned.set_shrink_start_child(false);
@@ -122,9 +122,9 @@ fn build_ui(app: &Application) {
 
     window.connect_close_request(clone!(
         #[strong]
-        settings,
+        settings_rc,
         move |_| {
-            settings.borrow().save();
+            settings_rc.borrow().save();
             glib::Propagation::Proceed
         }
     ));
@@ -148,7 +148,10 @@ fn load_css() {
 * Creates the folder sidebar with sections and folders.
 * @param title_label A label widget to display the current folder title in the header.
 * */
-fn create_folder_sidebar(title_label: Rc<RefCell<Label>>) -> Box {
+fn create_folder_sidebar(
+    title_label: Rc<RefCell<Label>>,
+    settings: Rc<RefCell<config::AppConfig>>,
+) -> Box {
     let sidebar = Box::new(Orientation::Vertical, 0);
     sidebar.set_width_request(220);
     sidebar.set_vexpand(true);
@@ -219,6 +222,9 @@ fn create_folder_sidebar(title_label: Rc<RefCell<Label>>) -> Box {
                     // Only update if it's not a section header
                     if !folder_name.is_empty() && !label.has_css_class("dim-label") {
                         title_label.borrow_mut().set_text(&folder_name);
+                        settings
+                            .borrow_mut()
+                            .update_selected_folder(&folder_name.as_str());
                     }
                 }
             }
