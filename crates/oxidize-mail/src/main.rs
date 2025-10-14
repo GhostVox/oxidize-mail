@@ -77,7 +77,7 @@ fn build_ui(app: &Application) {
     let header = HeaderBar::new();
     header.set_show_title_buttons(true);
 
-    let title = Label::new(Some(settings_rc.borrow().clone()));
+    let title = Label::new(Some(settings_rc.borrow().clone().get_selected_folder()));
     title.add_css_class("title");
 
     // Wrap title in Rc<RefCell> for shared mutable access

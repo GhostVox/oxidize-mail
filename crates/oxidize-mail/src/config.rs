@@ -58,6 +58,9 @@ impl AppConfig {
     pub fn update_selected_folder(&mut self, folder: &str) {
         self.selected_folder = folder.to_string();
     }
+    pub fn get_selected_folder(&self) -> &str {
+        &self.selected_folder
+    }
 }
 
 #[cfg(test)]
