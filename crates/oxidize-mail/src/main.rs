@@ -29,6 +29,7 @@ fn register_resources() {
     let resource = gio::Resource::from_data(&resource_bytes).expect("Failed to load GResource");
     gio::resources_register(&resource);
 }
+
 fn setup_application_icon(settings: &config::AppConfig) {
     use gtk4::IconTheme;
 
@@ -56,6 +57,7 @@ fn setup_application_icon(settings: &config::AppConfig) {
 
     println!("Setting icon: {}", icon_name);
 }
+
 fn build_ui(app: &Application) {
     // Load custom CSS
     load_css();
@@ -160,7 +162,7 @@ fn create_folder_sidebar(title_label: Rc<RefCell<Label>>) -> Box {
     let listbox = ListBox::new();
 
     // TODO: We will need to dynamically load folders from email accounts in the future.
-    //
+
     // Add folder sections
     let sections = vec![
         ("Favorites", vec!["📥 All Inboxes", "📧 Bret637@gmail.com"]),
