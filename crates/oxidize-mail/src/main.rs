@@ -79,7 +79,7 @@ fn build_ui(app: &Application) {
     // Wrap title in Rc<RefCell> for shared mutable access
     let title_rc = Rc::new(RefCell::new(title.clone()));
 
-    let mut emails = generate_sample_emails();
+    let emails = Rc::new(RefCell::new(generate_sample_emails()));
 
     header.set_title_widget(Some(&title));
 
@@ -90,7 +90,8 @@ fn build_ui(app: &Application) {
 
     // LEFT PANE: Folder sidebar
     //  clone the current title for use in the sidebar creation
-    let folder_sidebar = create_folder_sidebar(title_rc.clone(), settings_rc.clone(), &mut emails);
+    let folder_sidebar =
+        create_folder_sidebar(title_rc.clone(), settings_rc.clone(), emails.clone());
     main_paned.set_start_child(Some(&folder_sidebar));
     main_paned.set_resize_start_child(false);
     main_paned.set_shrink_start_child(false);
@@ -99,7 +100,7 @@ fn build_ui(app: &Application) {
     let content_paned = Paned::new(Orientation::Horizontal);
 
     // MIDDLE PANE: Email list
-    let email_list = create_email_list(title_rc.clone(), &mut emails);
+    let email_list = create_email_list(title_rc.clone(), emails.clone());
     content_paned.set_start_child(Some(&email_list));
     content_paned.set_resize_start_child(true);
     content_paned.set_shrink_start_child(false);
@@ -149,7 +150,7 @@ fn load_css() {
 fn create_folder_sidebar(
     title_label: Rc<RefCell<Label>>,
     settings: Rc<RefCell<config::AppConfig>>,
-    emails: &mut HashMap<String, Vec<(String, String, String, String)>>,
+    emails: Rc<RefCell<HashMap<String, Vec<(String, String, String, String)>>>>,
 ) -> Box {
     let sidebar = Box::new(Orientation::Vertical, 0);
     sidebar.set_width_request(220);
@@ -211,8 +212,8 @@ fn create_folder_sidebar(
             listbox.append(&label);
         }
     }
-
     // Connect row-selected signal to update title
+    //FIX: rewrite to reference original box to update
     listbox.connect_row_selected(move |_listbox, row| {
         if let Some(row) = row {
             if let Some(child) = row.child() {
@@ -225,7 +226,7 @@ fn create_folder_sidebar(
                             .borrow_mut()
                             .update_selected_folder(&folder_name.as_str());
                         //TODO: Implement email list update logic here
-                        populate_email_list(emails, title_label);
+                        populate_email_list(emails.clone(), title_label.clone());
                     }
                 }
             }
@@ -239,7 +240,7 @@ fn create_folder_sidebar(
 
 fn create_email_list(
     title_label: Rc<RefCell<Label>>,
-    emails: &mut HashMap<String, Vec<(String, String, String, String)>>,
+    emails: Rc<RefCell<HashMap<String, Vec<(String, String, String, String)>>>>,
 ) -> Box {
     let list_box = Box::new(Orientation::Vertical, 0);
     list_box.set_vexpand(true);
@@ -254,6 +255,7 @@ fn create_email_list(
     let listbox = ListBox::new();
     let current_folder = title_label.borrow_mut().text().to_string();
     for (i, (subject, sender, preview, time)) in emails
+        .borrow()
         .get(&current_folder)
         .unwrap_or(&Vec::new())
         .iter()
@@ -350,14 +352,16 @@ fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, Stri
     emails
 }
 
+//FIX : rewrite to not create a new box
 fn populate_email_list(
-    emails: &mut HashMap<String, Vec<(String, String, String, String)>>,
+    emails: Rc<RefCell<HashMap<String, Vec<(String, String, String, String)>>>>,
     current_folder: Rc<RefCell<Label>>,
 ) -> ListBox {
     // Take each email tuple and create a row
     let listbox = ListBox::new();
     let current_folder = current_folder.borrow_mut().text().to_string();
     for (i, (subject, sender, preview, time)) in emails
+        .borrow()
         .get(&current_folder)
         .unwrap_or(&Vec::new())
         .iter()
