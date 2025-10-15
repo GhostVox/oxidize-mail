@@ -1,3 +1,8 @@
+use fake::faker::internet::en::SafeEmail;
+use fake::faker::lorem::en::{Sentence, Words};
+use fake::Fake;
+use fake::Faker;
+// use fake::faker::name::en::Name;
 use gtk4::glib::clone;
 use gtk4::prelude::*;
 use std::collections::HashMap;
@@ -85,7 +90,7 @@ fn build_ui(app: &Application) {
 
     // LEFT PANE: Folder sidebar
     //  clone the current title for use in the sidebar creation
-    let folder_sidebar = create_folder_sidebar(title_rc.clone(), settings_rc.clone(), emails);
+    let folder_sidebar = create_folder_sidebar(title_rc.clone(), settings_rc.clone(), &mut emails);
     main_paned.set_start_child(Some(&folder_sidebar));
     main_paned.set_resize_start_child(false);
     main_paned.set_shrink_start_child(false);
@@ -220,7 +225,7 @@ fn create_folder_sidebar(
                             .borrow_mut()
                             .update_selected_folder(&folder_name.as_str());
                         //TODO: Implement email list update logic here
-                        populate_email_list(emails, title);
+                        populate_email_list(emails, title_label);
                     }
                 }
             }
@@ -245,12 +250,69 @@ fn create_email_list(
     scrolled.set_policy(PolicyType::Never, PolicyType::Automatic);
     scrolled.set_vexpand(true);
 
+    // Take each email tuple and create a row
     let listbox = ListBox::new();
+    let current_folder = title_label.borrow_mut().text().to_string();
+    for (i, (subject, sender, preview, time)) in emails
+        .get(&current_folder)
+        .unwrap_or(&Vec::new())
+        .iter()
+        .enumerate()
+    {
+        let email_row = Box::new(Orientation::Horizontal, 0);
+        email_row.set_margin_start(8);
+        email_row.set_margin_end(8);
+        email_row.set_margin_top(4);
+        email_row.set_margin_bottom(4);
+        email_row.add_css_class("email-row");
 
+        // Highlight "My Best Buy" email
+        if i == 7 {
+            email_row.add_css_class("selected");
+        }
+
+        let content_box = Box::new(Orientation::Vertical, 2);
+        content_box.set_hexpand(true);
+
+        let subject_label = Label::new(Some(subject));
+        subject_label.set_halign(gtk4::Align::Start);
+        subject_label.add_css_class("email-subject");
+        subject_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+
+        if !sender.is_empty() {
+            let sender_label = Label::new(Some(sender));
+            sender_label.set_halign(gtk4::Align::Start);
+            sender_label.add_css_class("email-sender");
+            sender_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+            content_box.append(&sender_label);
+        }
+
+        let preview_label = Label::new(Some(preview));
+        preview_label.set_halign(gtk4::Align::Start);
+        preview_label.add_css_class("email-preview");
+        preview_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+
+        content_box.append(&subject_label);
+        content_box.append(&preview_label);
+
+        let time_label = Label::new(Some(time));
+        time_label.set_halign(gtk4::Align::End);
+        time_label.set_valign(gtk4::Align::Start);
+        time_label.add_css_class("email-time");
+
+        email_row.append(&content_box);
+        email_row.append(&time_label);
+
+        listbox.append(&email_row);
+    }
+
+    scrolled.set_child(Some(&listbox));
+    list_box.append(&scrolled);
+    list_box
     // TODO:: We will need to dynamically load emails from the selected folder in the future.
     //
     // Sample emails matching the screenshot
-    populate_email_list(&mut emails, current_folder.clone())
+    // populate_email_list(emails, title_label.clone())
 }
 
 //TODO: Replace this with real email data structure and loading mechanism
@@ -290,12 +352,13 @@ fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, Stri
 
 fn populate_email_list(
     emails: &mut HashMap<String, Vec<(String, String, String, String)>>,
-    current_folder: Rc<Refcell<Label>>,
-) -> Listbox {
+    current_folder: Rc<RefCell<Label>>,
+) -> ListBox {
     // Take each email tuple and create a row
-    let current_folder = title_label.borrow_mut().text().to_string();
+    let listbox = ListBox::new();
+    let current_folder = current_folder.borrow_mut().text().to_string();
     for (i, (subject, sender, preview, time)) in emails
-        .get(&current_folder.as_str())
+        .get(&current_folder)
         .unwrap_or(&Vec::new())
         .iter()
         .enumerate()
