@@ -1,5 +1,6 @@
 use gtk4::glib::clone;
 use gtk4::prelude::*;
+use std::collections::HashMap;
 mod config;
 use gtk4::{
     gdk::Display, gio, glib, Application, ApplicationWindow, Box, CssProvider, HeaderBar, Label,
@@ -30,34 +31,6 @@ fn register_resources() {
     gio::resources_register(&resource);
 }
 
-fn setup_application_icon(settings: &config::AppConfig) {
-    use gtk4::IconTheme;
-
-    let icon_theme =
-        IconTheme::for_display(&Display::default().expect("Could not connect to display"));
-
-    // Add resource path to icon theme search paths
-    icon_theme.add_resource_path("/com/oxidize/mail/icons");
-
-    // Determine which icon to use based on color scheme
-    let color_scheme = settings.get_preferred_color_scheme();
-    let icon_name = match color_scheme {
-        config::ColorScheme::Light => "oxidize-mail-light",
-        config::ColorScheme::Dark => "oxidize-mail-dark",
-        config::ColorScheme::System => {
-            let gtk_settings = Settings::default().expect("Could not get GTK settings");
-            let prefer_dark = gtk_settings.property::<bool>("gtk-application-prefer-dark-theme");
-            if prefer_dark {
-                "oxidize-mail-dark"
-            } else {
-                "oxidize-mail-light"
-            }
-        }
-    };
-
-    println!("Setting icon: {}", icon_name);
-}
-
 fn build_ui(app: &Application) {
     // Load custom CSS
     load_css();
@@ -71,8 +44,26 @@ fn build_ui(app: &Application) {
         .default_height(900)
         .build();
 
-    // Set the window icon based on the preferred color scheme
-    window.set_icon_name(Some("oxidize-mail"));
+    // Set the window icon using the icon name (maps to GResource alias)
+    let color_scheme = settings_rc.borrow().get_preferred_color_scheme().clone();
+
+    let icon_name = match color_scheme {
+        config::ColorScheme::Light => "oxidize_mail_light",
+        config::ColorScheme::Dark => "oxidize_mail_dark",
+        config::ColorScheme::System => {
+            let gtk_settings = Settings::default().expect("Could not get GTK settings");
+            let prefer_dark = gtk_settings.property::<bool>("gtk-application-prefer-dark-theme");
+            if prefer_dark {
+                "oxidize_mail_dark"
+            } else {
+                "oxidize_mail_light"
+            }
+        }
+    };
+
+    // Set the window icon name
+    window.set_icon_name(Some(icon_name));
+
     // Header bar
     let header = HeaderBar::new();
     header.set_show_title_buttons(true);
@@ -83,6 +74,8 @@ fn build_ui(app: &Application) {
     // Wrap title in Rc<RefCell> for shared mutable access
     let title_rc = Rc::new(RefCell::new(title.clone()));
 
+    let mut emails = generate_sample_emails();
+
     header.set_title_widget(Some(&title));
 
     window.set_titlebar(Some(&header));
@@ -92,7 +85,7 @@ fn build_ui(app: &Application) {
 
     // LEFT PANE: Folder sidebar
     //  clone the current title for use in the sidebar creation
-    let folder_sidebar = create_folder_sidebar(title_rc.clone(), settings_rc.clone());
+    let folder_sidebar = create_folder_sidebar(title_rc.clone(), settings_rc.clone(), emails);
     main_paned.set_start_child(Some(&folder_sidebar));
     main_paned.set_resize_start_child(false);
     main_paned.set_shrink_start_child(false);
@@ -101,7 +94,7 @@ fn build_ui(app: &Application) {
     let content_paned = Paned::new(Orientation::Horizontal);
 
     // MIDDLE PANE: Email list
-    let email_list = create_email_list();
+    let email_list = create_email_list(title_rc.clone(), &mut emails);
     content_paned.set_start_child(Some(&email_list));
     content_paned.set_resize_start_child(true);
     content_paned.set_shrink_start_child(false);
@@ -151,6 +144,7 @@ fn load_css() {
 fn create_folder_sidebar(
     title_label: Rc<RefCell<Label>>,
     settings: Rc<RefCell<config::AppConfig>>,
+    emails: &mut HashMap<String, Vec<(String, String, String, String)>>,
 ) -> Box {
     let sidebar = Box::new(Orientation::Vertical, 0);
     sidebar.set_width_request(220);
@@ -165,7 +159,7 @@ fn create_folder_sidebar(
     let listbox = ListBox::new();
 
     // TODO: We will need to dynamically load folders from email accounts in the future.
-
+    //
     // Add folder sections
     let sections = vec![
         ("Favorites", vec!["📥 All Inboxes", "📧 Bret637@gmail.com"]),
@@ -225,6 +219,8 @@ fn create_folder_sidebar(
                         settings
                             .borrow_mut()
                             .update_selected_folder(&folder_name.as_str());
+                        //TODO: Implement email list update logic here
+                        populate_email_list(emails, title);
                     }
                 }
             }
@@ -236,7 +232,10 @@ fn create_folder_sidebar(
     sidebar
 }
 
-fn create_email_list() -> Box {
+fn create_email_list(
+    title_label: Rc<RefCell<Label>>,
+    emails: &mut HashMap<String, Vec<(String, String, String, String)>>,
+) -> Box {
     let list_box = Box::new(Orientation::Vertical, 0);
     list_box.set_vexpand(true);
     list_box.set_hexpand(true);
@@ -251,20 +250,56 @@ fn create_email_list() -> Box {
     // TODO:: We will need to dynamically load emails from the selected folder in the future.
     //
     // Sample emails matching the screenshot
-    let emails = vec![
-        ("Weekend Events at Colonial Trail", "Inbox - bret637@gmail.com", "Happening now at our neighbors this weeke...", "7:47 AM"),
-        ("Twitch", "Inbox - bret637@gmail.com", "YOASOBI×Yu-ki Wa WHEEI, RETURNI Your now...", "5:52 PM"),
-        ("Kaiser Permanente", "Inbox - bret637@gmail.com", "Important changes to health coverage includes", "12:28 PM"),
-        ("Turbotax", "Inbox - Google", "🔴 Only 3 more days to file on time!", "9:18 AM"),
-        ("Niklas Gusdmar, Co-Founder", "Inbox - bret637@gmail.com", "Confessions on AI Agent Adventures", "10/7/25"),
-        ("Tik Nagle Ferry Party.management company contact", "", "Success story: Why didn't I think of this?...", "9/30"),
-        ("Mia Igarashi", "Inbox - Google", "Re: Proposal for reforming the way we...", "9/3/25"),
-        ("My Best Buy", "Inbox - bret637@gmail.com", "Surprise, Brent! You've earned a $5 certificate. 🎊 Here $5 monthly reward, use its BYOD25, gift cards available.", "8/1/25"),
-        ("Claudia Jorgenz", "Inbox - bret637@gmail.com", "483A Ocean Drive address", "8/1/25"),
+    populate_email_list(&mut emails, current_folder.clone())
+}
+
+//TODO: Replace this with real email data structure and loading mechanism
+fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, String)>> {
+    let mut emails: HashMap<String, Vec<(String, String, String, String)>> = HashMap::new();
+    let folders = vec![
+        "📥 Inbox",
+        "📤 Sent",
+        "✏️ Drafts",
+        "📁 Junk",
+        "🗑️ Trash",
+        "📦 Archive",
     ];
 
+    for f in folders {
+        for _ in 0..9 {
+            let subject: String = Sentence(5..10).fake();
+            // let sender_name: String = Name().fake();
+            let sender_email: String = SafeEmail().fake();
+            let sender = format!("Inbox - {}", sender_email);
+            let preview: String = Words(8..15).fake::<Vec<String>>().join(" ") + "...";
+            let time = format!(
+                "{}:{:02} {}",
+                (1..12).fake::<u8>(),
+                (0..59).fake::<u8>(),
+                if Faker.fake::<bool>() { "AM" } else { "PM" }
+            );
+
+            emails
+                .entry(f.to_string())
+                .or_insert(Vec::new())
+                .push((subject, sender, preview, time));
+        }
+    }
+    emails
+}
+
+fn populate_email_list(
+    emails: &mut HashMap<String, Vec<(String, String, String, String)>>,
+    current_folder: Rc<Refcell<Label>>,
+) -> Listbox {
     // Take each email tuple and create a row
-    for (i, (subject, sender, preview, time)) in emails.iter().enumerate() {
+    let current_folder = title_label.borrow_mut().text().to_string();
+    for (i, (subject, sender, preview, time)) in emails
+        .get(&current_folder.as_str())
+        .unwrap_or(&Vec::new())
+        .iter()
+        .enumerate()
+    {
         let email_row = Box::new(Orientation::Horizontal, 0);
         email_row.set_margin_start(8);
         email_row.set_margin_end(8);
