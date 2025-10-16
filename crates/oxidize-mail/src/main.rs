@@ -26,6 +26,13 @@ fn main() -> glib::ExitCode {
     app.run()
 }
 
+/// Register the GResources for the application.
+///
+/// # Examples
+///
+/// ```
+/// register_resources();
+/// ```
 fn register_resources() {
     let resource_bytes = glib::Bytes::from_static(include_bytes!(concat!(
         env!("OUT_DIR"),
@@ -34,7 +41,19 @@ fn register_resources() {
     let resource = gio::Resource::from_data(&resource_bytes).expect("Failed to load GResource");
     gio::resources_register(&resource);
 }
-// Helper function to apply theme
+
+/// Applies the theme to the given window based on the configuration.
+///
+/// # Arguments
+///
+/// * `window` - Application window to apply the theme to.
+/// * `config` - AppConfig instance containing user preferences.
+///
+/// # Examples
+///
+/// ```
+/// apply_theme(&window, settings_rc.clone());
+/// ```
 fn apply_theme(window: &ApplicationWindow, config: Rc<RefCell<config::AppConfig>>) {
     let should_use_dark = match config.borrow().get_preferred_color_scheme() {
         config::ColorScheme::Light => false,
@@ -54,6 +73,17 @@ fn apply_theme(window: &ApplicationWindow, config: Rc<RefCell<config::AppConfig>
     }
 }
 
+/// Builds the main UI for the application, ment to be used as the `activate` signal handler.
+///
+/// # Arguments
+///
+/// * `app` - Application instance to build the UI for.
+///
+/// # Examples
+///
+/// ```
+/// app.connect_activate(build_ui);
+/// ```
 fn build_ui(app: &Application) {
     load_css();
     let settings_rc = Rc::new(RefCell::new(config::AppConfig::load()));
@@ -77,8 +107,6 @@ fn build_ui(app: &Application) {
 
     // Email data generation
     let emails = Rc::new(RefCell::new(generate_sample_emails()));
-
-    // --- Refactoring Start ---
 
     // 1. Create the email list widgets, getting a reference to the ListBox
     let (email_list_container, email_listbox) = create_email_list_widgets();
@@ -138,6 +166,13 @@ fn build_ui(app: &Application) {
     window.present();
 }
 
+/// Loads the CSS from resources and applies it to the application display.
+///
+/// # Examples
+///
+/// ```
+/// load_css();
+/// ```
 fn load_css() {
     let provider = CssProvider::new();
     provider.load_from_resource("/com/oxidize/mail/css/style.css");
@@ -148,10 +183,26 @@ fn load_css() {
     );
 }
 
-/**
- * Creates the folder sidebar.
- * Now accepts a reference to the email ListBox to update it directly.
- */
+/// Creates the folder sidebar with folder sections and items;
+///
+/// # Arguments
+///
+/// * `title_label` - Label of active inbox, to be updated on folder selection. associated with the
+/// header bar.
+/// * `settings` - Appconfig instance of user preferences. Will be updated on folder selection.
+/// * `emails` - HashMap of email data, used to repopulate the email list on folder selection.
+/// * `email_listbox` - Email list box. The ListBox to be repopulated when a folder is selected.
+///
+/// # Examples
+///
+/// ```
+/// let folder_sidebar = create_folder_sidebar(
+///     title_rc.clone(),
+///     settings_rc.clone(),
+///     emails.clone(),
+///     email_listbox_rc, // Pass the reference
+/// );
+/// ```
 fn create_folder_sidebar(
     title_label: Rc<RefCell<Label>>,
     settings: Rc<RefCell<config::AppConfig>>,
@@ -248,12 +299,19 @@ fn create_folder_sidebar(
 
     scrolled.set_child(Some(&listbox));
     sidebar.append(&scrolled);
-    //TODO: Add a settings button which will display a floating module with settings and other info
+    //TODO: Add a floating settings modal when clicked
     let settings_button = create_settings_button();
     sidebar.append(&settings_button);
     sidebar
 }
 
+/// Renders teh settings button in the folder sidebar.
+///
+/// # Examples
+///
+/// ```
+/// let settings_button = create_settings_button();
+/// ```
 fn create_settings_button() -> Button {
     let settings_button = Button::builder()
         .label("  Settings")
@@ -266,10 +324,13 @@ fn create_settings_button() -> Button {
     settings_button
 }
 
-/**
- * Creates the widgets for the email list pane.
- * Returns the main container and the ListBox inside it.
- */
+/// Creates the email list container and ListBox.
+///
+/// # Examples
+///
+/// ```
+/// let (email_list_container, email_listbox) = create_email_list_widgets();
+/// ```
 fn create_email_list_widgets() -> (Box, ListBox) {
     let list_container = Box::new(Orientation::Vertical, 0);
     list_container.set_vexpand(true);
@@ -287,9 +348,23 @@ fn create_email_list_widgets() -> (Box, ListBox) {
     (list_container, listbox)
 }
 
-/**
- * Clears and repopulates the email ListBox with new data.
- */
+/// Populates the given ListBox with email rows for teh specified folder.
+///
+/// # Arguments
+///
+/// * `listbox` - ListBox to repopulate with correspoinding emails.
+/// * `folder_name` - Name of the folder to get emails for.
+/// * `emails` - Email HashMap containing all email data.
+///
+/// # Examples
+///
+/// ```
+/// populate_email_list(
+///        &email_listbox_rc.borrow(),
+///        &settings_rc.borrow().get_selected_folder(),
+///        &emails.borrow(),
+/// );
+/// ```
 fn populate_email_list(
     listbox: &ListBox,
     folder_name: &str,
@@ -352,8 +427,6 @@ fn populate_email_list(
     }
 }
 
-// --- Functions below this line are unchanged ---
-
 fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, String)>> {
     let mut emails: HashMap<String, Vec<(String, String, String, String)>> = HashMap::new();
     let folders = vec![
@@ -388,6 +461,15 @@ fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, Stri
     emails
 }
 
+//FIXME: Make this dynamic using webkit to render actual email content
+
+/// Creates the email viewer pane.
+///
+/// # Examples
+///
+/// ```
+/// let email_viewer = create_email_viewer();
+/// ```
 fn create_email_viewer() -> Box {
     // This function remains the same as it's just a static display for now.
     let viewer = Box::new(Orientation::Vertical, 0);
