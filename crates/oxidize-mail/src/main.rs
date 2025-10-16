@@ -4,7 +4,7 @@ use fake::Fake;
 use fake::Faker;
 // use fake::faker::name::en::Name;
 use gtk4::glib::clone;
-use gtk4::{prelude::*, Settings};
+use gtk4::{prelude::*, Button, Settings};
 use std::collections::HashMap;
 mod config;
 use gtk4::{
@@ -248,7 +248,22 @@ fn create_folder_sidebar(
 
     scrolled.set_child(Some(&listbox));
     sidebar.append(&scrolled);
+    //TODO: Add a settings button which will display a floating module with settings and other info
+    let settings_button = create_settings_button();
+    sidebar.append(&settings_button);
     sidebar
+}
+
+fn create_settings_button() -> Button {
+    let settings_button = Button::builder()
+        .label("  Settings")
+        .margin_top(12)
+        .margin_bottom(12)
+        .margin_start(12)
+        .build();
+    settings_button.add_css_class("settings-button");
+    settings_button.set_halign(gtk4::Align::Start);
+    settings_button
 }
 
 /**

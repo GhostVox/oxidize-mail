@@ -10,7 +10,7 @@
 @define-color dark_fg #ffffff;
 @define-color dark_accent #EBD9CB;
 @define-color dark_hover rgba(255, 255, 255, 0.05);
-@define-color dark_selected rgba(235, 217, 203, 0.15);
+@define-color dark_selected rgba(239, 130, 13, 0.9);
 @define-color dark_border rgba(255, 255, 255, 0.1);
 
 /* DEFAULT LIGHT THEME */
@@ -19,10 +19,26 @@ window {
     color: @light_fg;
 }
 
-.title{
-    padding: 50 px;
+/*
+* This sections controls the Header bar and it's childrens style
+*/
+headerbar  {
+  font-size: 18px;
+  font-weight: bold;
+  color: @light_fg;
 }
 
+/* For your dark theme */
+window.dark headerbar  {
+    color: @dark_fg;
+}
+
+/* End of Header bar section */
+
+
+/* 
+* This is section contains styles for the folder listbox and the folders
+*/
 .navigation-sidebar {
     background-color: alpha(@light_bg, 0.95);
     border-right: 1px solid @light_border;
@@ -32,6 +48,15 @@ window {
     background-color: @light_hover;
 }
 
+.settings-button:hover{
+background-color: @light_hover;
+}
+
+/* End of folder style */
+
+/*
+* This Section contains styles for the email listbox and email rows
+*/
 .email-list {
     background-color: white;
     border-right: 1px solid @light_border;
@@ -75,6 +100,7 @@ window {
     background-color: white;
     padding: 20px;
 }
+/* End of email list and email styles */
 
 /* DARK THEME - Apply when .dark class is on window */
 window.dark {
@@ -105,9 +131,13 @@ window.dark .email-row:hover {
 }
 
 window.dark .email-row.selected {
-    background-color: @dark_accent;
+    background-color: @dark_selected;
     color: @dark_fg;
 }
+window.dark .settings-button:hover{
+background-color: @dark_hover;
+}
+
 
 window.dark .email-sender {
     color: alpha(@dark_fg, 0.7);
