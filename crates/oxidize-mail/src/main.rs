@@ -9,7 +9,7 @@ use std::collections::HashMap;
 mod config;
 use gtk4::{
     gdk::Display, gio, glib, Application, ApplicationWindow, Box, CssProvider, HeaderBar, Label,
-    ListBox, Orientation, Paned, PolicyType, ScrolledWindow, Settings,
+    ListBox, Orientation, Paned, PolicyType, ScrolledWindow,
 };
 
 use std::cell::RefCell;
@@ -27,7 +27,6 @@ fn main() -> glib::ExitCode {
 }
 
 fn register_resources() {
-    // Include the compiled .gresource file that was created by build.rs
     let resource_bytes = glib::Bytes::from_static(include_bytes!(concat!(
         env!("OUT_DIR"),
         "/oxidize-mail.gresource"
@@ -37,9 +36,7 @@ fn register_resources() {
 }
 
 fn build_ui(app: &Application) {
-    // Load custom CSS
     load_css();
-    // Load the App config
     let settings_rc = Rc::new(RefCell::new(config::AppConfig::load()));
 
     let window = ApplicationWindow::builder()
@@ -49,80 +46,66 @@ fn build_ui(app: &Application) {
         .default_height(900)
         .build();
 
-    // Set the window icon using the icon name (maps to GResource alias)
-    let color_scheme = settings_rc.borrow().get_preferred_color_scheme().clone();
-
-    let icon_name = match color_scheme {
-        config::ColorScheme::Light => "oxidize_mail_light",
-        config::ColorScheme::Dark => "oxidize_mail_dark",
-        config::ColorScheme::System => {
-            let gtk_settings = Settings::default().expect("Could not get GTK settings");
-            let prefer_dark = gtk_settings.property::<bool>("gtk-application-prefer-dark-theme");
-            if prefer_dark {
-                "oxidize_mail_dark"
-            } else {
-                "oxidize_mail_light"
-            }
-        }
-    };
-
-    // Set the window icon name
-    window.set_icon_name(Some(icon_name));
-
-    // Header bar
+    // Header bar setup
     let header = HeaderBar::new();
     header.set_show_title_buttons(true);
-
-    let title = Label::new(Some(settings_rc.borrow().clone().get_selected_folder()));
+    let title = Label::new(Some(&settings_rc.borrow().get_selected_folder()));
     title.add_css_class("title");
-
-    // Wrap title in Rc<RefCell> for shared mutable access
     let title_rc = Rc::new(RefCell::new(title.clone()));
-
-    let emails = Rc::new(RefCell::new(generate_sample_emails()));
-
     header.set_title_widget(Some(&title));
-
     window.set_titlebar(Some(&header));
 
-    // Main container - horizontal paned (3 columns)
-    let main_paned = Paned::new(Orientation::Horizontal);
+    // Email data generation
+    let emails = Rc::new(RefCell::new(generate_sample_emails()));
 
-    // MIDDLE + RIGHT: Another paned widget
-    let mut content_paned = Paned::new(Orientation::Horizontal);
+    // --- Refactoring Start ---
 
-    // LEFT PANE: Folder sidebar
-    //  clone the current title for use in the sidebar creation
+    // 1. Create the email list widgets, getting a reference to the ListBox
+    let (email_list_container, email_listbox) = create_email_list_widgets();
+    let email_listbox_rc = Rc::new(RefCell::new(email_listbox));
+
+    // 2. Populate the list with initial data
+    populate_email_list(
+        &email_listbox_rc.borrow(),
+        &settings_rc.borrow().get_selected_folder(),
+        &emails.borrow(),
+    );
+
+    // 3. Create the folder sidebar, passing the email ListBox reference to it
     let folder_sidebar = create_folder_sidebar(
         title_rc.clone(),
         settings_rc.clone(),
         emails.clone(),
-        &mut content_paned,
+        email_listbox_rc, // Pass the reference
     );
+
+    // --- UI Layout ---
+    let main_paned = Paned::new(Orientation::Horizontal);
+    let content_paned = Paned::new(Orientation::Horizontal);
+
+    // Left Pane
     main_paned.set_start_child(Some(&folder_sidebar));
     main_paned.set_resize_start_child(false);
     main_paned.set_shrink_start_child(false);
 
-    // MIDDLE PANE: Email list
-    let email_list = create_email_list(title_rc.clone(), emails.clone());
-    content_paned.set_start_child(Some(&email_list));
+    // Middle Pane (now using the container we created)
+    content_paned.set_start_child(Some(&email_list_container));
     content_paned.set_resize_start_child(true);
     content_paned.set_shrink_start_child(false);
 
-    // RIGHT PANE: Email viewer
+    // Right Pane
     let email_viewer = create_email_viewer();
     content_paned.set_end_child(Some(&email_viewer));
     content_paned.set_resize_end_child(true);
     content_paned.set_shrink_end_child(false);
 
     main_paned.set_end_child(Some(&content_paned));
-    main_paned.set_position(220); // Sidebar width
-    content_paned.set_position(450); // Email list width
+    main_paned.set_position(220);
+    content_paned.set_position(450);
 
     window.set_child(Some(&main_paned));
 
-    // Closure to be called when the application is about to close
-
+    // Save settings on close
     window.connect_close_request(clone!(
         #[strong]
         settings_rc,
@@ -131,15 +114,13 @@ fn build_ui(app: &Application) {
             glib::Propagation::Proceed
         }
     ));
+
     window.present();
 }
 
-/// This function loads the CSS from our GResource and applies it to the application.
 fn load_css() {
     let provider = CssProvider::new();
-    // Load CSS from the GResource using the full path
     provider.load_from_resource("/com/oxidize/mail/css/style.css");
-
     gtk4::style_context_add_provider_for_display(
         &Display::default().expect("Could not connect to a display."),
         &provider,
@@ -148,19 +129,18 @@ fn load_css() {
 }
 
 /**
-* Creates the folder sidebar with sections and folders.
-* @param title_label A label widget to display the current folder title in the header.
-* */
+* Creates the folder sidebar.
+* Now accepts a reference to the email ListBox to update it directly.
+*/
 fn create_folder_sidebar(
     title_label: Rc<RefCell<Label>>,
     settings: Rc<RefCell<config::AppConfig>>,
     emails: Rc<RefCell<HashMap<String, Vec<(String, String, String, String)>>>>,
-    content_paned: &mut Paned,
+    email_listbox: Rc<RefCell<ListBox>>, // MODIFIED: Takes the ListBox now
 ) -> Box {
     let sidebar = Box::new(Orientation::Vertical, 0);
     sidebar.set_width_request(220);
     sidebar.set_vexpand(true);
-    sidebar.set_hexpand(false);
     sidebar.add_css_class("navigation-sidebar");
 
     let scrolled = ScrolledWindow::new();
@@ -169,9 +149,7 @@ fn create_folder_sidebar(
 
     let listbox = ListBox::new();
 
-    // TODO: We will need to dynamically load folders from email accounts in the future.
-    //
-    // Add folder sections
+    // Hardcoded folder sections (can be dynamic later)
     let sections = vec![
         ("Favorites", vec!["📥 All Inboxes", "📧 Bret637@gmail.com"]),
         (
@@ -197,9 +175,7 @@ fn create_folder_sidebar(
         ),
     ];
 
-    // Populate listbox with sections and folders
     for (section_name, folders) in sections {
-        // Section header
         let header = Label::new(Some(section_name));
         header.set_halign(gtk4::Align::Start);
         header.set_margin_start(12);
@@ -209,7 +185,6 @@ fn create_folder_sidebar(
         header.add_css_class("dim-label");
         listbox.append(&header);
 
-        // Folders
         for folder in folders {
             let label = Label::new(Some(folder));
             label.set_halign(gtk4::Align::Start);
@@ -217,169 +192,133 @@ fn create_folder_sidebar(
             listbox.append(&label);
         }
     }
-    // Connect row-selected signal to update title
-    //FIX: rewrite to reference original box to update
-    listbox.connect_row_selected(move |_listbox, row| {
-        if let Some(row) = row {
-            if let Some(child) = row.child() {
-                if let Ok(label) = child.downcast::<Label>() {
-                    let folder_name = label.text();
-                    // Only update if it's not a section header
-                    if !folder_name.is_empty() && !label.has_css_class("dim-label") {
-                        title_label.borrow_mut().set_text(&folder_name);
-                        settings
-                            .borrow_mut()
-                            .update_selected_folder(&folder_name.as_str());
-                        //TODO: Implement email list update logic here
 
-                        create_email_list(title_label.clone(), emails.clone());
+    // Connect row-selected signal to update title and repopulate the email list
+    listbox.connect_row_selected(clone!(
+        #[strong]
+        title_label,
+        #[strong]
+        settings,
+        #[strong]
+        emails,
+        #[strong]
+        email_listbox,
+        move |_, row| {
+            if let Some(row) = row {
+                if let Some(label) = row.child().and_then(|child| child.downcast::<Label>().ok()) {
+                    let folder_name = label.text();
+                    // Ensure we're not clicking a section header
+                    if !folder_name.is_empty() && !label.has_css_class("dim-label") {
+                        // Update header title and settings
+                        title_label.borrow_mut().set_text(&folder_name);
+                        settings.borrow_mut().update_selected_folder(&folder_name);
+
+                        // ** THE FIX **
+                        // Call the function to repopulate the existing ListBox
+                        populate_email_list(
+                            &email_listbox.borrow(),
+                            &folder_name,
+                            &emails.borrow(),
+                        );
                     }
                 }
             }
         }
-    });
+    ));
 
     scrolled.set_child(Some(&listbox));
     sidebar.append(&scrolled);
     sidebar
 }
 
-fn create_email_list(
-    title_label: Rc<RefCell<Label>>,
-    emails: Rc<RefCell<HashMap<String, Vec<(String, String, String, String)>>>>,
-) -> Box {
-    let list_box = Box::new(Orientation::Vertical, 0);
-    list_box.set_vexpand(true);
-    list_box.set_hexpand(true);
-    list_box.add_css_class("email-list");
+/**
+* Creates the widgets for the email list pane.
+* Returns the main container and the ListBox inside it.
+*/
+fn create_email_list_widgets() -> (Box, ListBox) {
+    let list_container = Box::new(Orientation::Vertical, 0);
+    list_container.set_vexpand(true);
+    list_container.set_hexpand(true);
+    list_container.add_css_class("email-list");
 
     let scrolled = ScrolledWindow::new();
     scrolled.set_policy(PolicyType::Never, PolicyType::Automatic);
     scrolled.set_vexpand(true);
 
-    // Take each email tuple and create a row
     let listbox = ListBox::new();
-    let current_folder = title_label.borrow_mut().text().to_string();
-    for (i, (subject, sender, preview, time)) in emails
-        .borrow()
-        .get(&current_folder)
-        .unwrap_or(&Vec::new())
-        .iter()
-        .enumerate()
-    {
-        let email_row = Box::new(Orientation::Horizontal, 0);
-        email_row.set_margin_start(8);
-        email_row.set_margin_end(8);
-        email_row.set_margin_top(4);
-        email_row.set_margin_bottom(4);
-        email_row.add_css_class("email-row");
-
-        // Highlight "My Best Buy" email
-        if i == 7 {
-            email_row.add_css_class("selected");
-        }
-
-        let content_box = Box::new(Orientation::Vertical, 2);
-        content_box.set_hexpand(true);
-
-        let subject_label = Label::new(Some(subject));
-        subject_label.set_halign(gtk4::Align::Start);
-        subject_label.add_css_class("email-subject");
-        subject_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-
-        if !sender.is_empty() {
-            let sender_label = Label::new(Some(sender));
-            sender_label.set_halign(gtk4::Align::Start);
-            sender_label.add_css_class("email-sender");
-            sender_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-            content_box.append(&sender_label);
-        }
-
-        let preview_label = Label::new(Some(preview));
-        preview_label.set_halign(gtk4::Align::Start);
-        preview_label.add_css_class("email-preview");
-        preview_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-
-        content_box.append(&subject_label);
-        content_box.append(&preview_label);
-
-        let time_label = Label::new(Some(time));
-        time_label.set_halign(gtk4::Align::End);
-        time_label.set_valign(gtk4::Align::Start);
-        time_label.add_css_class("email-time");
-
-        email_row.append(&content_box);
-        email_row.append(&time_label);
-
-        listbox.append(&email_row);
-    }
 
     scrolled.set_child(Some(&listbox));
-    list_box.append(&scrolled);
-    // TODO:: We will need to dynamically load emails from the selected folder in the future.
-    //
-    // Sample emails matching the screenshot
-    // Take each email tuple and create a row
-    for (i, (subject, sender, preview, time)) in emails
-        .borrow()
-        .get(&current_folder)
-        .unwrap_or(&Vec::new())
-        .iter()
-        .enumerate()
-    {
-        let email_row = Box::new(Orientation::Horizontal, 0);
-        email_row.set_margin_start(8);
-        email_row.set_margin_end(8);
-        email_row.set_margin_top(4);
-        email_row.set_margin_bottom(4);
-        email_row.add_css_class("email-row");
-
-        // Highlight "My Best Buy" email
-        if i == 7 {
-            email_row.add_css_class("selected");
-        }
-
-        let content_box = Box::new(Orientation::Vertical, 2);
-        content_box.set_hexpand(true);
-
-        let subject_label = Label::new(Some(subject));
-        subject_label.set_halign(gtk4::Align::Start);
-        subject_label.add_css_class("email-subject");
-        subject_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-
-        if !sender.is_empty() {
-            let sender_label = Label::new(Some(sender));
-            sender_label.set_halign(gtk4::Align::Start);
-            sender_label.add_css_class("email-sender");
-            sender_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-            content_box.append(&sender_label);
-        }
-
-        let preview_label = Label::new(Some(preview));
-        preview_label.set_halign(gtk4::Align::Start);
-        preview_label.add_css_class("email-preview");
-        preview_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-
-        content_box.append(&subject_label);
-        content_box.append(&preview_label);
-
-        let time_label = Label::new(Some(time));
-        time_label.set_halign(gtk4::Align::End);
-        time_label.set_valign(gtk4::Align::Start);
-        time_label.add_css_class("email-time");
-
-        email_row.append(&content_box);
-        email_row.append(&time_label);
-
-        listbox.append(&email_row);
-    }
-
-    scrolled.set_child(Some(&listbox));
-    list_box.append(&scrolled);
-    list_box
+    list_container.append(&scrolled);
+    (list_container, listbox)
 }
 
-//TODO: Replace this with real email data structure and loading mechanism
+/**
+* Clears and repopulates the email ListBox with new data.
+*/
+fn populate_email_list(
+    listbox: &ListBox,
+    folder_name: &str,
+    emails: &HashMap<String, Vec<(String, String, String, String)>>,
+) {
+    // Clear existing rows
+    while let Some(child) = listbox.first_child() {
+        listbox.remove(&child);
+    }
+
+    // Get the emails for the selected folder and create new rows
+    if let Some(email_list) = emails.get(folder_name) {
+        for (i, (subject, sender, preview, time)) in email_list.iter().enumerate() {
+            let email_row = Box::new(Orientation::Horizontal, 0);
+            email_row.set_margin_start(8);
+            email_row.set_margin_end(8);
+            email_row.set_margin_top(4);
+            email_row.set_margin_bottom(4);
+            email_row.add_css_class("email-row");
+
+            // Hardcoded selection for demonstration
+            if i == 7 {
+                email_row.add_css_class("selected");
+            }
+
+            let content_box = Box::new(Orientation::Vertical, 2);
+            content_box.set_hexpand(true);
+
+            if !sender.is_empty() {
+                let sender_label = Label::new(Some(sender));
+                sender_label.set_halign(gtk4::Align::Start);
+                sender_label.add_css_class("email-sender");
+                sender_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+                content_box.append(&sender_label);
+            }
+
+            let subject_label = Label::new(Some(subject));
+            subject_label.set_halign(gtk4::Align::Start);
+            subject_label.add_css_class("email-subject");
+            subject_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+
+            let preview_label = Label::new(Some(preview));
+            preview_label.set_halign(gtk4::Align::Start);
+            preview_label.add_css_class("email-preview");
+            preview_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+
+            content_box.append(&subject_label);
+            content_box.append(&preview_label);
+
+            let time_label = Label::new(Some(time));
+            time_label.set_halign(gtk4::Align::End);
+            time_label.set_valign(gtk4::Align::Start);
+            time_label.add_css_class("email-time");
+
+            email_row.append(&content_box);
+            email_row.append(&time_label);
+
+            listbox.append(&email_row);
+        }
+    }
+}
+
+// --- Functions below this line are unchanged ---
+
 fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, String)>> {
     let mut emails: HashMap<String, Vec<(String, String, String, String)>> = HashMap::new();
     let folders = vec![
@@ -392,9 +331,9 @@ fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, Stri
     ];
 
     for f in folders {
-        for _ in 0..9 {
+        for _ in 0..20 {
+            // Added more emails for better scrolling demo
             let subject: String = Sentence(5..10).fake();
-            // let sender_name: String = Name().fake();
             let sender_email: String = SafeEmail().fake();
             let sender = format!("Inbox - {}", sender_email);
             let preview: String = Words(8..15).fake::<Vec<String>>().join(" ") + "...";
@@ -407,15 +346,15 @@ fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, Stri
 
             emails
                 .entry(f.to_string())
-                .or_insert(Vec::new())
+                .or_insert_with(Vec::new)
                 .push((subject, sender, preview, time));
         }
     }
     emails
 }
 
-// TODO: Replace the email viewer with a webkit view to render HTML emails.
 fn create_email_viewer() -> Box {
+    // This function remains the same as it's just a static display for now.
     let viewer = Box::new(Orientation::Vertical, 0);
     viewer.set_vexpand(true);
     viewer.set_hexpand(true);
@@ -449,6 +388,9 @@ fn create_email_viewer() -> Box {
     header_box.append(&subject);
     header_box.append(&from);
     header_box.append(&reply_to);
+
+    content.append(&header_box);
+    // ... rest of the hardcoded viewer content is the same ...
 
     // Best Buy promotional content
     let promo_box = Box::new(Orientation::Vertical, 0);
@@ -508,7 +450,6 @@ fn create_email_viewer() -> Box {
 
     content.append(&header_box);
     content.append(&promo_box);
-
     scrolled.set_child(Some(&content));
     viewer.append(&scrolled);
     viewer
