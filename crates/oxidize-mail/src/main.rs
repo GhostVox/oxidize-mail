@@ -4,7 +4,7 @@ use fake::Fake;
 use fake::Faker;
 // use fake::faker::name::en::Name;
 use gtk4::glib::clone;
-use gtk4::prelude::*;
+use gtk4::{prelude::*, Settings};
 use std::collections::HashMap;
 mod config;
 use gtk4::{
@@ -34,6 +34,25 @@ fn register_resources() {
     let resource = gio::Resource::from_data(&resource_bytes).expect("Failed to load GResource");
     gio::resources_register(&resource);
 }
+// Helper function to apply theme
+fn apply_theme(window: &ApplicationWindow, config: Rc<RefCell<config::AppConfig>>) {
+    let should_use_dark = match config.borrow().get_preferred_color_scheme() {
+        config::ColorScheme::Light => false,
+        config::ColorScheme::Dark => true,
+        config::ColorScheme::System => {
+            // Check GTK system preference
+            let gtk_settings = Settings::default().expect("Could not get GTK settings");
+            gtk_settings.property::<bool>("gtk-application-prefer-dark-theme")
+        }
+    };
+
+    // Add or remove the "dark" CSS class
+    if should_use_dark {
+        window.add_css_class("dark");
+    } else {
+        window.remove_css_class("dark");
+    }
+}
 
 fn build_ui(app: &Application) {
     load_css();
@@ -46,6 +65,7 @@ fn build_ui(app: &Application) {
         .default_height(900)
         .build();
 
+    apply_theme(&window, settings_rc.clone());
     // Header bar setup
     let header = HeaderBar::new();
     header.set_show_title_buttons(true);
@@ -129,9 +149,9 @@ fn load_css() {
 }
 
 /**
-* Creates the folder sidebar.
-* Now accepts a reference to the email ListBox to update it directly.
-*/
+ * Creates the folder sidebar.
+ * Now accepts a reference to the email ListBox to update it directly.
+ */
 fn create_folder_sidebar(
     title_label: Rc<RefCell<Label>>,
     settings: Rc<RefCell<config::AppConfig>>,
@@ -232,9 +252,9 @@ fn create_folder_sidebar(
 }
 
 /**
-* Creates the widgets for the email list pane.
-* Returns the main container and the ListBox inside it.
-*/
+ * Creates the widgets for the email list pane.
+ * Returns the main container and the ListBox inside it.
+ */
 fn create_email_list_widgets() -> (Box, ListBox) {
     let list_container = Box::new(Orientation::Vertical, 0);
     list_container.set_vexpand(true);
@@ -253,8 +273,8 @@ fn create_email_list_widgets() -> (Box, ListBox) {
 }
 
 /**
-* Clears and repopulates the email ListBox with new data.
-*/
+ * Clears and repopulates the email ListBox with new data.
+ */
 fn populate_email_list(
     listbox: &ListBox,
     folder_name: &str,
