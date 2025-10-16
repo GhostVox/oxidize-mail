@@ -88,16 +88,20 @@ fn build_ui(app: &Application) {
     // Main container - horizontal paned (3 columns)
     let main_paned = Paned::new(Orientation::Horizontal);
 
+    // MIDDLE + RIGHT: Another paned widget
+    let mut content_paned = Paned::new(Orientation::Horizontal);
+
     // LEFT PANE: Folder sidebar
     //  clone the current title for use in the sidebar creation
-    let folder_sidebar =
-        create_folder_sidebar(title_rc.clone(), settings_rc.clone(), emails.clone());
+    let folder_sidebar = create_folder_sidebar(
+        title_rc.clone(),
+        settings_rc.clone(),
+        emails.clone(),
+        &mut content_paned,
+    );
     main_paned.set_start_child(Some(&folder_sidebar));
     main_paned.set_resize_start_child(false);
     main_paned.set_shrink_start_child(false);
-
-    // MIDDLE + RIGHT: Another paned widget
-    let content_paned = Paned::new(Orientation::Horizontal);
 
     // MIDDLE PANE: Email list
     let email_list = create_email_list(title_rc.clone(), emails.clone());
@@ -151,6 +155,7 @@ fn create_folder_sidebar(
     title_label: Rc<RefCell<Label>>,
     settings: Rc<RefCell<config::AppConfig>>,
     emails: Rc<RefCell<HashMap<String, Vec<(String, String, String, String)>>>>,
+    content_paned: &mut Paned,
 ) -> Box {
     let sidebar = Box::new(Orientation::Vertical, 0);
     sidebar.set_width_request(220);
@@ -226,7 +231,8 @@ fn create_folder_sidebar(
                             .borrow_mut()
                             .update_selected_folder(&folder_name.as_str());
                         //TODO: Implement email list update logic here
-                        populate_email_list(emails.clone(), title_label.clone());
+
+                        create_email_list(title_label.clone(), emails.clone());
                     }
                 }
             }
@@ -310,56 +316,10 @@ fn create_email_list(
 
     scrolled.set_child(Some(&listbox));
     list_box.append(&scrolled);
-    list_box
     // TODO:: We will need to dynamically load emails from the selected folder in the future.
     //
     // Sample emails matching the screenshot
-    // populate_email_list(emails, title_label.clone())
-}
-
-//TODO: Replace this with real email data structure and loading mechanism
-fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, String)>> {
-    let mut emails: HashMap<String, Vec<(String, String, String, String)>> = HashMap::new();
-    let folders = vec![
-        "📥 Inbox",
-        "📤 Sent",
-        "✏️ Drafts",
-        "📁 Junk",
-        "🗑️ Trash",
-        "📦 Archive",
-    ];
-
-    for f in folders {
-        for _ in 0..9 {
-            let subject: String = Sentence(5..10).fake();
-            // let sender_name: String = Name().fake();
-            let sender_email: String = SafeEmail().fake();
-            let sender = format!("Inbox - {}", sender_email);
-            let preview: String = Words(8..15).fake::<Vec<String>>().join(" ") + "...";
-            let time = format!(
-                "{}:{:02} {}",
-                (1..12).fake::<u8>(),
-                (0..59).fake::<u8>(),
-                if Faker.fake::<bool>() { "AM" } else { "PM" }
-            );
-
-            emails
-                .entry(f.to_string())
-                .or_insert(Vec::new())
-                .push((subject, sender, preview, time));
-        }
-    }
-    emails
-}
-
-//FIX : rewrite to not create a new box
-fn populate_email_list(
-    emails: Rc<RefCell<HashMap<String, Vec<(String, String, String, String)>>>>,
-    current_folder: Rc<RefCell<Label>>,
-) -> ListBox {
     // Take each email tuple and create a row
-    let listbox = ListBox::new();
-    let current_folder = current_folder.borrow_mut().text().to_string();
     for (i, (subject, sender, preview, time)) in emails
         .borrow()
         .get(&current_folder)
@@ -417,6 +377,41 @@ fn populate_email_list(
     scrolled.set_child(Some(&listbox));
     list_box.append(&scrolled);
     list_box
+}
+
+//TODO: Replace this with real email data structure and loading mechanism
+fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, String)>> {
+    let mut emails: HashMap<String, Vec<(String, String, String, String)>> = HashMap::new();
+    let folders = vec![
+        "📥 Inbox",
+        "📤 Sent",
+        "✏️ Drafts",
+        "📁 Junk",
+        "🗑️ Trash",
+        "📦 Archive",
+    ];
+
+    for f in folders {
+        for _ in 0..9 {
+            let subject: String = Sentence(5..10).fake();
+            // let sender_name: String = Name().fake();
+            let sender_email: String = SafeEmail().fake();
+            let sender = format!("Inbox - {}", sender_email);
+            let preview: String = Words(8..15).fake::<Vec<String>>().join(" ") + "...";
+            let time = format!(
+                "{}:{:02} {}",
+                (1..12).fake::<u8>(),
+                (0..59).fake::<u8>(),
+                if Faker.fake::<bool>() { "AM" } else { "PM" }
+            );
+
+            emails
+                .entry(f.to_string())
+                .or_insert(Vec::new())
+                .push((subject, sender, preview, time));
+        }
+    }
+    emails
 }
 
 // TODO: Replace the email viewer with a webkit view to render HTML emails.
