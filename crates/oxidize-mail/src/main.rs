@@ -7,6 +7,7 @@ use gtk4::glib::clone;
 use gtk4::{prelude::*, Button, Settings};
 use std::collections::HashMap;
 mod config;
+mod settings_dialog;
 use gtk4::{
     gdk::Display, gio, glib, Application, ApplicationWindow, Box, CssProvider, HeaderBar, Label,
     ListBox, Orientation, Paned, PolicyType, ScrolledWindow,
@@ -128,6 +129,7 @@ fn build_ui(app: &Application) {
         settings_rc.clone(),
         emails.clone(),
         email_listbox_rc, // Pass the reference
+        &window,
     );
 
     // --- UI Layout ---
@@ -210,6 +212,7 @@ fn create_folder_sidebar(
     settings: Rc<RefCell<config::AppConfig>>,
     emails: Rc<RefCell<HashMap<String, Vec<Email>>>>,
     email_listbox: Rc<RefCell<ListBox>>, // MODIFIED: Takes the ListBox now
+    window: &ApplicationWindow,
 ) -> Box {
     let sidebar = Box::new(Orientation::Vertical, 0);
     sidebar.set_width_request(220);
@@ -302,7 +305,7 @@ fn create_folder_sidebar(
     scrolled.set_child(Some(&listbox));
     sidebar.append(&scrolled);
     //TODO: Add a floating settings modal when clicked
-    let settings_button = create_settings_button();
+    let settings_button = create_settings_button(window, settings.clone());
     sidebar.append(&settings_button);
     sidebar
 }
@@ -314,15 +317,34 @@ fn create_folder_sidebar(
 /// ```
 /// let settings_button = create_settings_button();
 /// ```
-fn create_settings_button() -> Button {
+/// Creates the settings button with dialog connection.
+fn create_settings_button(
+    window: &ApplicationWindow,
+    config: Rc<RefCell<config::AppConfig>>,
+) -> Button {
     let settings_button = Button::builder()
-        .label("  Settings")
+        .label("⚙️  Settings")
         .margin_top(12)
         .margin_bottom(12)
         .margin_start(12)
         .build();
     settings_button.add_css_class("settings-button");
     settings_button.set_halign(gtk4::Align::Start);
+
+    // Connect click signal to show settings window
+    let window_weak = window.downgrade();
+    settings_button.connect_clicked(clone!(
+        #[strong]
+        config,
+        move |_| {
+            if let Some(window) = window_weak.upgrade() {
+                // Show settings window (returns Window, not Dialog)
+                let _settings_window =
+                    settings_dialog::show_settings_dialog(&window, config.clone());
+            }
+        }
+    ));
+
     settings_button
 }
 

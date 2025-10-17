@@ -61,6 +61,9 @@ impl AppConfig {
     pub fn get_selected_folder(&self) -> &str {
         &self.selected_folder
     }
+    pub fn update_color_scheme(&mut self, scheme: ColorScheme) {
+        self.preferred_color_scheme = scheme;
+    }
 }
 
 #[cfg(test)]
@@ -80,6 +83,18 @@ mod tests {
     fn test_get_preferred_color_scheme() {
         let config = AppConfig::default();
         assert_eq!(config.get_preferred_color_scheme(), &ColorScheme::Dark);
+    }
+
+    #[test]
+    fn test_update_color_scheme() {
+        let mut config = AppConfig::default();
+        assert_eq!(config.preferred_color_scheme, ColorScheme::Dark);
+
+        config.update_color_scheme(ColorScheme::Light);
+        assert_eq!(config.preferred_color_scheme, ColorScheme::Light);
+
+        config.update_color_scheme(ColorScheme::System);
+        assert_eq!(config.preferred_color_scheme, ColorScheme::System);
     }
 
     #[test]
