@@ -1,5 +1,5 @@
 use fake::faker::internet::en::SafeEmail;
-use fake::faker::lorem::en::{Sentence, Words};
+use fake::faker::lorem::en::Sentence;
 use fake::Fake;
 use fake::Faker;
 // use fake::faker::name::en::Name;
@@ -109,6 +109,9 @@ fn build_ui(app: &Application) {
     let emails = Rc::new(RefCell::new(generate_sample_emails()));
 
     // 1. Create the email list widgets, getting a reference to the ListBox
+    let (email_viewer, email_header_box, email_viewer_box) = create_email_viewer_widgets();
+    let email_viewer_rc = Rc::new(RefCell::new(email_viewer));
+
     let (email_list_container, email_listbox) = create_email_list_widgets();
     let email_listbox_rc = Rc::new(RefCell::new(email_listbox));
 
@@ -142,7 +145,6 @@ fn build_ui(app: &Application) {
     content_paned.set_shrink_start_child(false);
 
     // Right Pane
-    let email_viewer = create_email_viewer();
     content_paned.set_end_child(Some(&email_viewer));
     content_paned.set_resize_end_child(true);
     content_paned.set_shrink_end_child(false);
@@ -206,7 +208,7 @@ fn load_css() {
 fn create_folder_sidebar(
     title_label: Rc<RefCell<Label>>,
     settings: Rc<RefCell<config::AppConfig>>,
-    emails: Rc<RefCell<HashMap<String, Vec<(String, String, String, String)>>>>,
+    emails: Rc<RefCell<HashMap<String, Vec<Email>>>>,
     email_listbox: Rc<RefCell<ListBox>>, // MODIFIED: Takes the ListBox now
 ) -> Box {
     let sidebar = Box::new(Orientation::Vertical, 0);
@@ -343,6 +345,15 @@ fn create_email_list_widgets() -> (Box, ListBox) {
 
     let listbox = ListBox::new();
 
+    // listbox.connect_row_selected(clone!(
+    //     #[strong]
+    //     emails,
+    //     #[strong]
+    //     email_viewer_box,
+    //     move |_, row| {
+    //         //TODO: Update email viewer with selected email content
+    //     }
+    // ));
     scrolled.set_child(Some(&listbox));
     list_container.append(&scrolled);
     (list_container, listbox)
@@ -365,11 +376,7 @@ fn create_email_list_widgets() -> (Box, ListBox) {
 ///        &emails.borrow(),
 /// );
 /// ```
-fn populate_email_list(
-    listbox: &ListBox,
-    folder_name: &str,
-    emails: &HashMap<String, Vec<(String, String, String, String)>>,
-) {
+fn populate_email_list(listbox: &ListBox, folder_name: &str, emails: &HashMap<String, Vec<Email>>) {
     // Clear existing rows
     while let Some(child) = listbox.first_child() {
         listbox.remove(&child);
@@ -377,7 +384,7 @@ fn populate_email_list(
 
     // Get the emails for the selected folder and create new rows
     if let Some(email_list) = emails.get(folder_name) {
-        for (i, (subject, sender, preview, time)) in email_list.iter().enumerate() {
+        for (i, e) in email_list.iter().enumerate() {
             let email_row = Box::new(Orientation::Horizontal, 0);
             email_row.set_margin_start(8);
             email_row.set_margin_end(8);
@@ -393,20 +400,20 @@ fn populate_email_list(
             let content_box = Box::new(Orientation::Vertical, 2);
             content_box.set_hexpand(true);
 
-            if !sender.is_empty() {
-                let sender_label = Label::new(Some(sender));
+            if !e.sender.is_empty() {
+                let sender_label = Label::new(Some(&e.sender));
                 sender_label.set_halign(gtk4::Align::Start);
                 sender_label.add_css_class("email-sender");
                 sender_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
                 content_box.append(&sender_label);
             }
 
-            let subject_label = Label::new(Some(subject));
+            let subject_label = Label::new(Some(&e.subject));
             subject_label.set_halign(gtk4::Align::Start);
             subject_label.add_css_class("email-subject");
             subject_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
 
-            let preview_label = Label::new(Some(preview));
+            let preview_label = Label::new(Some(&e.preview));
             preview_label.set_halign(gtk4::Align::Start);
             preview_label.add_css_class("email-preview");
             preview_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
@@ -414,7 +421,7 @@ fn populate_email_list(
             content_box.append(&subject_label);
             content_box.append(&preview_label);
 
-            let time_label = Label::new(Some(time));
+            let time_label = Label::new(Some(&e.time));
             time_label.set_halign(gtk4::Align::End);
             time_label.set_valign(gtk4::Align::Start);
             time_label.add_css_class("email-time");
@@ -427,8 +434,8 @@ fn populate_email_list(
     }
 }
 
-fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, String)>> {
-    let mut emails: HashMap<String, Vec<(String, String, String, String)>> = HashMap::new();
+fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
+    let mut emails: HashMap<String, Vec<Email>> = HashMap::new();
     let folders = vec![
         "📥 Inbox",
         "📤 Sent",
@@ -444,7 +451,8 @@ fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, Stri
             let subject: String = Sentence(5..10).fake();
             let sender_email: String = SafeEmail().fake();
             let sender = format!("Inbox - {}", sender_email);
-            let preview: String = Words(8..15).fake::<Vec<String>>().join(" ") + "...";
+            let body: String = Sentence(50..100).fake();
+            let preview: String = body.chars().take(60).collect();
             let time = format!(
                 "{}:{:02} {}",
                 (1..12).fake::<u8>(),
@@ -455,23 +463,55 @@ fn generate_sample_emails() -> HashMap<String, Vec<(String, String, String, Stri
             emails
                 .entry(f.to_string())
                 .or_insert_with(Vec::new)
-                .push((subject, sender, preview, time));
+                .push(Email {
+                    subject,
+                    sender,
+                    preview,
+                    time,
+                    body,
+                });
         }
     }
     emails
+}
+
+fn populate_email_viewer() {
+
+    // let subject = Label::new(Some(&selected_email.subject));
+    // subject.set_halign(gtk4::Align::Start);
+    // subject.add_css_class("viewer-subject");
+
+    // let from = Label::new(Some(&selected_email.sender));
+    // from.set_halign(gtk4::Align::Start);
+    // from.add_css_class("viewer-header");
+
+    // let time = Label::new(Some(&selected_email.time));
+    // from.set_halign(gtk4::Align::Start);
+    // from.add_css_class("viewer-header");
+
+    // //WARNING: i think this is supposed to be a button or link
+    // let reply_to = Label::new(Some("Reply-To: Best Buy"));
+    // reply_to.set_halign(gtk4::Align::Start);
+    // reply_to.add_css_class("viewer-header");
+    // header_box.append(&subject);
+    // header_box.append(&from);
+    // header_box.append(&reply_to);
+    // header_box.append(&time);
 }
 
 //FIXME: Make this dynamic using webkit to render actual email content
 
 /// Creates the email viewer pane.
 ///
+/// # Arguments
+/// * `selected_email` - The email to display in the viewer.
+///
 /// # Examples
 ///
 /// ```
-/// let email_viewer = create_email_viewer();
+/// let email_viewer = create_email_viewer(selected_email);
 /// ```
-fn create_email_viewer() -> Box {
-    // This function remains the same as it's just a static display for now.
+fn create_email_viewer_widgets() -> (Box, Box, Box) {
     let viewer = Box::new(Orientation::Vertical, 0);
     viewer.set_vexpand(true);
     viewer.set_hexpand(true);
@@ -490,84 +530,34 @@ fn create_email_viewer() -> Box {
     header_box.set_margin_top(20);
     header_box.set_margin_bottom(20);
 
-    let subject = Label::new(Some("My Best Buy"));
-    subject.set_halign(gtk4::Align::Start);
-    subject.add_css_class("viewer-subject");
+    content.append(&header_box);
 
-    let from = Label::new(Some("From: bret637@gmail.com"));
-    from.set_halign(gtk4::Align::Start);
-    from.add_css_class("viewer-header");
-
-    let reply_to = Label::new(Some("Reply-To: Best Buy"));
-    reply_to.set_halign(gtk4::Align::Start);
-    reply_to.add_css_class("viewer-header");
-
-    header_box.append(&subject);
-    header_box.append(&from);
-    header_box.append(&reply_to);
+    //TODO: fill this box with webkit
+    let viewer_box = Box::new(Orientation::Vertical, 0);
 
     content.append(&header_box);
-    // ... rest of the hardcoded viewer content is the same ...
-
-    // Best Buy promotional content
-    let promo_box = Box::new(Orientation::Vertical, 0);
-
-    // Blue header with celebration message
-    let blue_header = Box::new(Orientation::Vertical, 12);
-    blue_header.add_css_class("bestbuy-header");
-    blue_header.set_margin_top(20);
-
-    let celebrate = Label::new(Some("It's time to celebrate, Brent"));
-    celebrate.add_css_class("celebrate-text");
-
-    let amount = Label::new(Some("$5"));
-    amount.add_css_class("certificate-amount");
-
-    let cert_label = Label::new(Some("Certificate*"));
-    cert_label.add_css_class("certificate-label");
-
-    blue_header.append(&celebrate);
-    blue_header.append(&amount);
-    blue_header.append(&cert_label);
-
-    // Reward description
-    let description_box = Box::new(Orientation::Vertical, 12);
-    description_box.add_css_class("reward-description");
-    description_box.set_margin_start(20);
-    description_box.set_margin_end(20);
-    description_box.set_margin_top(20);
-    description_box.set_margin_bottom(20);
-
-    let desc_text = Label::new(Some("Let's make today even more special. Here's a $5 monthly reward to use toward your next Best Buy® purchase. Enjoy the savings and keep enjoying your membership benefits."));
-    desc_text.set_wrap(true);
-    desc_text.set_justify(gtk4::Justification::Center);
-
-    let shop_btn = Label::new(Some("Shop Now"));
-    shop_btn.add_css_class("shop-button");
-    shop_btn.set_margin_top(12);
-
-    let member_id = Label::new(Some("Member ID: 4127480758"));
-    member_id.set_margin_top(20);
-    member_id.add_css_class("caption");
-
-    let cert_number = Label::new(Some("Certificate Number: 3253413911"));
-    cert_number.add_css_class("caption");
-
-    let exp_date = Label::new(Some("Expiration Date: 9/30/25"));
-    exp_date.add_css_class("caption");
-
-    description_box.append(&desc_text);
-    description_box.append(&shop_btn);
-    description_box.append(&member_id);
-    description_box.append(&cert_number);
-    description_box.append(&exp_date);
-
-    promo_box.append(&blue_header);
-    promo_box.append(&description_box);
-
-    content.append(&header_box);
-    content.append(&promo_box);
+    content.append(&viewer_box);
     scrolled.set_child(Some(&content));
     viewer.append(&scrolled);
-    viewer
+    (viewer, header_box, viewer_box)
+}
+
+struct Email {
+    subject: String,
+    sender: String,
+    preview: String,
+    time: String,
+    body: String,
+}
+
+impl Email {
+    fn new(subject: String, sender: String, preview: String, time: String, body: String) -> Self {
+        Self {
+            subject,
+            sender,
+            preview,
+            time,
+            body,
+        }
+    }
 }
