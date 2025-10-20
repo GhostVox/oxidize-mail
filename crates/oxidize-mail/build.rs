@@ -1,7 +1,7 @@
 use std::env;
 use std::path::Path;
 use std::process::Command;
-
+// This is for building the Gtk resources
 fn main() {
     // Tell Cargo to rerun this script if resources change
     println!("cargo:rerun-if-changed=resources/");
@@ -15,15 +15,15 @@ fn main() {
     let output = Command::new("glib-compile-resources")
         .args(&[
             &format!("--target={}", output_path.display()),
-            "--sourcedir=resources",  // Where to find the files
-            "resources/oxidize-mail.gresource.xml",  // The definition file
+            "--sourcedir=resources",                // Where to find the files
+            "resources/oxidize-mail.gresource.xml", // The definition file
         ])
         .output()
         .expect(
             "Failed to run glib-compile-resources. Is it installed?\n\
              Try: sudo apt install libglib2.0-dev-bin (Ubuntu/Debian)\n\
              Or: sudo pacman -S glib2 (Arch)\n\
-             Or: brew install glib (macOS)"
+             Or: brew install glib (macOS)",
         );
 
     // Check if it worked
