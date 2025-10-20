@@ -1,0 +1,166 @@
+   Compiling oxidize-mail v0.1.0 (/home/brinhasavlin/repos/Oxidize-Mail-/crates/oxidize-mail)
+error[E0425]: cannot find value `title` in this scope
+   --> crates/oxidize-mail/src/main.rs:223:53
+    |
+223 |                         populate_email_list(emails, title);
+    |                                                     ^^^^^ not found in this scope
+
+error[E0425]: cannot find value `current_folder` in this scope
+   --> crates/oxidize-mail/src/main.rs:253:38
+    |
+253 |     populate_email_list(&mut emails, current_folder.clone())
+    |                                      ^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find function, tuple struct or tuple variant `Words` in this scope
+   --> crates/oxidize-mail/src/main.rs:274:35
+    |
+274 |             let preview: String = Words(8..15).fake::<Vec<String>>().join(" ") + "...";
+    |                                   ^^^^^ not found in this scope
+    |
+help: consider importing one of these unit variants
+    |
+  1 + use gtk4::DeleteType::Words;
+    |
+  1 + use gtk4::MovementStep::Words;
+    |
+
+error[E0425]: cannot find value `Faker` in this scope
+   --> crates/oxidize-mail/src/main.rs:279:20
+    |
+279 |                 if Faker.fake::<bool>() { "AM" } else { "PM" }
+    |                    ^^^^^ not found in this scope
+
+error[E0412]: cannot find type `Refcell` in this scope
+   --> crates/oxidize-mail/src/main.rs:293:24
+    |
+293 |     current_folder: Rc<Refcell<Label>>,
+    |                        ^^^^^^^ help: a struct with a similar name exists (notice the capitalization): `RefCell`
+    |
+   ::: /home/brinhasavlin/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cell.rs:720:1
+    |
+720 | pub struct RefCell<T: ?Sized> {
+    | ----------------------------- similarly named struct `RefCell` defined here
+
+error[E0412]: cannot find type `Listbox` in this scope
+   --> crates/oxidize-mail/src/main.rs:294:6
+    |
+294 |   ) -> Listbox {
+    |        ^^^^^^^ help: a struct with a similar name exists: `ListBox`
+    |
+   ::: /home/brinhasavlin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gtk4-0.10.1/src/auto/list_box.rs:20:1
+    |
+ 20 | / glib::wrapper! {
+ 21 | |     #[doc(alias = "GtkListBox")]
+ 22 | |     pub struct ListBox(Object<ffi::GtkListBox>) @extends Widget, @implements Accessible, Buildable, ConstraintTarget;
+...   |
+ 27 | | }
+    | |_- similarly named struct `ListBox` defined here
+
+error[E0425]: cannot find value `title_label` in this scope
+   --> crates/oxidize-mail/src/main.rs:296:26
+    |
+296 |     let current_folder = title_label.borrow_mut().text().to_string();
+    |                          ^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `listbox` in this scope
+   --> crates/oxidize-mail/src/main.rs:347:9
+    |
+347 |         listbox.append(&email_row);
+    |         ^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `scrolled` in this scope
+   --> crates/oxidize-mail/src/main.rs:350:5
+    |
+350 |     scrolled.set_child(Some(&listbox));
+    |     ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `listbox` in this scope
+   --> crates/oxidize-mail/src/main.rs:350:30
+    |
+350 |     scrolled.set_child(Some(&listbox));
+    |                              ^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `list_box` in this scope
+   --> crates/oxidize-mail/src/main.rs:351:5
+    |
+351 |     list_box.append(&scrolled);
+    |     ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `scrolled` in this scope
+   --> crates/oxidize-mail/src/main.rs:351:22
+    |
+351 |     list_box.append(&scrolled);
+    |                      ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `list_box` in this scope
+   --> crates/oxidize-mail/src/main.rs:352:5
+    |
+352 |     list_box
+    |     ^^^^^^^^ not found in this scope
+
+error[E0308]: mismatched types
+   --> crates/oxidize-mail/src/main.rs:88:87
+    |
+ 88 |     let folder_sidebar = create_folder_sidebar(title_rc.clone(), settings_rc.clone(), emails);
+    |                          ---------------------                                        ^^^^^^ expected `&mut HashMap<String, Vec<...>>`, found `HashMap<String, Vec<...>>`
+    |                          |
+    |                          arguments to this function are incorrect
+    |
+    = note: expected mutable reference `&mut HashMap<_, _>`
+                          found struct `HashMap<_, _>`
+note: function defined here
+   --> crates/oxidize-mail/src/main.rs:144:4
+    |
+144 | fn create_folder_sidebar(
+    |    ^^^^^^^^^^^^^^^^^^^^^
+...
+147 |     emails: &mut HashMap<String, Vec<(String, String, String, String)>>,
+    |     -------------------------------------------------------------------
+help: consider mutably borrowing here
+    |
+ 88 |     let folder_sidebar = create_folder_sidebar(title_rc.clone(), settings_rc.clone(), &mut emails);
+    |                                                                                       ++++
+
+error[E0425]: cannot find function, tuple struct or tuple variant `Sentence` in this scope
+   --> crates/oxidize-mail/src/main.rs:270:35
+    |
+270 |             let subject: String = Sentence(5..10).fake();
+    |                                   ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find function, tuple struct or tuple variant `SafeEmail` in this scope
+   --> crates/oxidize-mail/src/main.rs:272:40
+    |
+272 |             let sender_email: String = SafeEmail().fake();
+    |                                        ^^^^^^^^^ not found in this scope
+
+error[E0599]: no method named `fake` found for struct `std::ops::Range` in the current scope
+    --> crates/oxidize-mail/src/main.rs:277:25
+     |
+ 277 |                 (1..12).fake::<u8>(),
+     |                         ^^^^
+     |
+help: there is a method `take` with a similar name, but with different arguments
+    --> /home/brinhasavlin/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:1387:5
+     |
+1387 | /     fn take(self, n: usize) -> Take<Self>
+1388 | |     where
+1389 | |         Self: Sized,
+     | |____________________^
+
+error[E0599]: no method named `fake` found for struct `std::ops::Range` in the current scope
+    --> crates/oxidize-mail/src/main.rs:278:25
+     |
+ 278 |                 (0..59).fake::<u8>(),
+     |                         ^^^^
+     |
+help: there is a method `take` with a similar name, but with different arguments
+    --> /home/brinhasavlin/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:1387:5
+     |
+1387 | /     fn take(self, n: usize) -> Take<Self>
+1388 | |     where
+1389 | |         Self: Sized,
+     | |____________________^
+
+Some errors have detailed explanations: E0308, E0412, E0425, E0599.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `oxidize-mail` (bin "oxidize-mail") due to 18 previous errors
