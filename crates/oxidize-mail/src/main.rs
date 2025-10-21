@@ -123,6 +123,7 @@ fn create_email_viewer_widgets() -> (Box, Box, WebView) {
     header_box.set_margin_end(20);
     header_box.set_margin_top(20);
     header_box.set_margin_bottom(20);
+    header_box.add_css_class("email-header-box");
     content.append(&header_box);
 
     //TODO: on launch display a welcome message or collapse the box until an email is selected
