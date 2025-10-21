@@ -320,6 +320,8 @@ pub fn populate_email_list(
         listbox.remove(&child);
     }
 
+    // TODO: implement a method to limit number of emails shown for performance
+
     // Get the emails for the selected folder and create new rows
     if let Some(email_list) = emails.get(folder_name) {
         for (i, e) in email_list.iter().enumerate() {
@@ -330,6 +332,7 @@ pub fn populate_email_list(
             email_row.set_margin_bottom(4);
             email_row.add_css_class("email-row");
 
+            // TODO: Replace with actual selection logic
             // Hardcoded selection for demonstration
             if i == 7 {
                 email_row.add_css_class("selected");
@@ -372,6 +375,7 @@ pub fn populate_email_list(
     }
 }
 
+// FIXME: deprecate this when IMAP is implemented
 pub fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
     let mut emails: HashMap<String, Vec<Email>> = HashMap::new();
     let folders = vec![
@@ -406,6 +410,7 @@ pub fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
     }
     emails
 }
+
 fn populate_email_viewer(
     email_header_rc: Rc<RefCell<Box>>,
     webkit_box_rc: Rc<RefCell<WebView>>,
