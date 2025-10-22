@@ -1,14 +1,16 @@
 use oxidize_mail_types::AppConfig;
+
 use rusqlite::{params, Connection, Result};
 
-struct DB {
+#[derive(Debug)]
+pub struct DB {
     conn: Connection,
 }
 
 impl DB {
-    pub fn new(config: &Config) -> Result<Self, rusqlite::Error> {
+    pub fn new(config: &AppConfig) -> Result<Self, rusqlite::Error> {
         Ok(Self {
-            conn: Connection::open(&config.app_db)?,
+            conn: Connection::open(config.get_db())?,
         })
     }
 }

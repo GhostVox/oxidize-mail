@@ -2,8 +2,7 @@ use gtk4::prelude::*;
 use gtk4::{glib, ApplicationWindow, Box, CheckButton, Label, Orientation, Window};
 use std::cell::RefCell;
 use std::rc::Rc;
-
-use crate::config::{AppConfig, ColorScheme};
+use oxidize_mail_types::{UserConfig,ColorScheme};
 
 /// Creates and displays a settings window for the application.
 ///
@@ -17,7 +16,7 @@ use crate::config::{AppConfig, ColorScheme};
 /// ```
 /// show_settings_dialog(&window, config_rc.clone());
 /// ```
-pub fn show_settings_dialog(parent: &ApplicationWindow, config: Rc<RefCell<AppConfig>>) -> Window {
+pub fn show_settings_dialog(parent: &ApplicationWindow, config: Rc<RefCell<UserConfig>>) -> Window {
     let window = Window::builder()
         .title("Settings")
         .modal(true)
@@ -77,7 +76,7 @@ pub fn show_settings_dialog(parent: &ApplicationWindow, config: Rc<RefCell<AppCo
 /// # Returns
 ///
 /// A Box containing the appearance settings widgets
-fn create_appearance_section(config: Rc<RefCell<AppConfig>>, parent: &ApplicationWindow) -> Box {
+fn create_appearance_section(config: Rc<RefCell<UserConfig>>, parent: &ApplicationWindow) -> Box {
     let section = Box::new(Orientation::Vertical, 8);
 
     // Section header
@@ -171,7 +170,7 @@ fn create_appearance_section(config: Rc<RefCell<AppConfig>>, parent: &Applicatio
 ///
 /// * `window` - Application window to apply theme to
 /// * `config` - Application configuration containing theme preference
-fn apply_theme_to_window(window: &ApplicationWindow, config: &Rc<RefCell<AppConfig>>) {
+fn apply_theme_to_window(window: &ApplicationWindow, config: &Rc<RefCell<UserConfig>>) {
     let should_use_dark = match config.borrow().get_preferred_color_scheme() {
         ColorScheme::Light => false,
         ColorScheme::Dark => true,

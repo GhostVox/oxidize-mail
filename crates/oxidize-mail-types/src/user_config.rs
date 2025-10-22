@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use dirs;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum ColorScheme {
@@ -10,13 +11,14 @@ pub enum ColorScheme {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct AppConfig {
+pub struct UserConfig {
     preferred_color_scheme: ColorScheme,
     preferred_font: String,
     selected_folder: String,
+
 }
 
-impl Default for AppConfig {
+impl Default for UserConfig {
     fn default() -> Self {
         Self {
             preferred_color_scheme: ColorScheme::Dark,
@@ -26,7 +28,7 @@ impl Default for AppConfig {
     }
 }
 
-impl AppConfig {
+impl UserConfig {
     pub fn load() -> Self {
         Self::load_from_path(dirs::config_dir().unwrap().join("oxidize-mail/config.toml"))
     }
@@ -43,7 +45,7 @@ impl AppConfig {
     pub fn save(&self) {
         let config_path = dirs::config_dir().unwrap().join("oxidize-mail/config.toml");
 
-        // Create parent directory if it doesn't exist
+        // Create a parent directory if it doesn't exist
         fs::create_dir_all(config_path.parent().unwrap())
             .expect("Failed to create config directory");
 
@@ -73,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_default_config() {
-        let config = AppConfig::default();
+        let config = UserConfig::default();
         assert_eq!(config.preferred_color_scheme, ColorScheme::Dark);
         assert_eq!(config.preferred_font, "Sans 11");
         assert_eq!(config.selected_folder, "📥 All Inboxes");
@@ -81,13 +83,13 @@ mod tests {
 
     #[test]
     fn test_get_preferred_color_scheme() {
-        let config = AppConfig::default();
+        let config = UserConfig::default();
         assert_eq!(config.get_preferred_color_scheme(), &ColorScheme::Dark);
     }
 
     #[test]
     fn test_update_color_scheme() {
-        let mut config = AppConfig::default();
+        let mut config = UserConfig::default();
         assert_eq!(config.preferred_color_scheme, ColorScheme::Dark);
 
         config.update_color_scheme(ColorScheme::Light);
@@ -112,7 +114,7 @@ selected_folder = "Work"
         fs::write(&config_path, test_config).unwrap();
 
         // Load the config from the test path
-        let config = AppConfig::load_from_path(&config_path);
+        let config = UserConfig::load_from_path(&config_path);
 
         // Verify the config was loaded correctly
         assert_eq!(config.preferred_color_scheme, ColorScheme::Light);
@@ -127,7 +129,7 @@ selected_folder = "Work"
         let config_path = temp_dir.path().join("nonexistent-config.toml");
 
         // Load the config - should return default
-        let config = AppConfig::load_from_path(&config_path);
+        let config = UserConfig::load_from_path(&config_path);
 
         // Verify it's the default config
         assert_eq!(config.preferred_color_scheme, ColorScheme::Dark);
@@ -148,7 +150,7 @@ this is not valid toml!!!
         fs::write(&config_path, test_config).unwrap();
 
         // Load the config - should return default due to unwrap_or_default()
-        let config = AppConfig::load_from_path(&config_path);
+        let config = UserConfig::load_from_path(&config_path);
 
         // Verify it's the default config
         assert_eq!(config.preferred_color_scheme, ColorScheme::Dark);
@@ -162,7 +164,7 @@ this is not valid toml!!!
         let config_path = temp_dir.path().join("oxidize-mail").join("config.toml");
 
         // Create a custom config
-        let original_config = AppConfig {
+        let original_config = UserConfig {
             preferred_color_scheme: ColorScheme::System,
             preferred_font: String::from("Arial 14"),
             selected_folder: String::from("Custom Folder"),
@@ -177,7 +179,7 @@ this is not valid toml!!!
         fs::write(&config_path, contents).unwrap();
 
         // Load it back
-        let loaded_config = AppConfig::load_from_path(&config_path);
+        let loaded_config = UserConfig::load_from_path(&config_path);
 
         // Verify they match
         assert_eq!(loaded_config.preferred_color_scheme, ColorScheme::System);
@@ -200,7 +202,7 @@ selected_folder = "📥 All Inboxes"
     "#,
         )
         .unwrap();
-        let config = AppConfig::load_from_path(&config_path);
+        let config = UserConfig::load_from_path(&config_path);
         assert_eq!(config.preferred_color_scheme, ColorScheme::Light);
 
         // Test Dark
@@ -214,7 +216,7 @@ selected_folder = "📥 All Inboxes"
     "#,
         )
         .unwrap();
-        let config = AppConfig::load_from_path(&config_path);
+        let config = UserConfig::load_from_path(&config_path);
         assert_eq!(config.preferred_color_scheme, ColorScheme::Dark);
 
         // Test System
@@ -228,7 +230,7 @@ selected_folder = "📥 All Inboxes"
     "#,
         )
         .unwrap();
-        let config = AppConfig::load_from_path(&config_path);
+        let config = UserConfig::load_from_path(&config_path);
         assert_eq!(config.preferred_color_scheme, ColorScheme::System);
     }
 }

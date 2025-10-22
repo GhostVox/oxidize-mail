@@ -5,8 +5,12 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Common types for Oxidize Mail crates"
 
 [dependencies]
 serde.workspace = true
+mail-parser.workspace = true
+rusqlite.workspace = true
 toml = { version = "0.7", features = ["preserve_order"] }
-dirs = "4.0"
+dirs = "6.0"
+tempfile = "3.6.0"

@@ -679,31 +679,11 @@ dependencies = [
 
 [[package]]
 name = "dirs"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
-dependencies = [
- "dirs-sys 0.3.7",
-]
-
-[[package]]
-name = "dirs"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
 dependencies = [
- "dirs-sys 0.5.0",
-]
-
-[[package]]
-name = "dirs-sys"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
-dependencies = [
- "libc",
- "redox_users 0.4.6",
- "winapi",
+ "dirs-sys",
 ]
 
 [[package]]
@@ -714,7 +694,7 @@ checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
 dependencies = [
  "libc",
  "option-ext",
- "redox_users 0.5.2",
+ "redox_users",
  "windows-sys 0.61.2",
 ]
 
@@ -2482,7 +2462,6 @@ name = "oxidize-mail"
 version = "0.1.0"
 dependencies = [
  "config",
- "dirs 6.0.0",
  "env_logger",
  "fake",
  "gdk4",
@@ -2493,14 +2472,13 @@ dependencies = [
  "oxidize-mail-core",
  "oxidize-mail-parser",
  "oxidize-mail-storage",
+ "oxidize-mail-types",
  "secret-service",
  "serde",
  "serde_json",
  "sourceview5",
  "tantivy",
- "tempfile",
  "tokio",
- "toml 0.9.8",
  "webkit6",
 ]
 
@@ -2534,6 +2512,7 @@ dependencies = [
  "log",
  "mail-parser",
  "mime",
+ "oxidize-mail-types",
  "pulldown-cmark",
  "regex",
  "serde",
@@ -2562,8 +2541,11 @@ dependencies = [
 name = "oxidize-mail-types"
 version = "0.1.0"
 dependencies = [
- "dirs 4.0.0",
+ "dirs",
+ "mail-parser",
+ "rusqlite",
  "serde",
+ "tempfile",
  "toml 0.7.8",
 ]
 
@@ -2990,17 +2972,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d"
 dependencies = [
  "bitflags 2.10.0",
-]
-
-[[package]]
-name = "redox_users"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba009ff324d1fc1b900bd1fdb31564febe58a8ccc8a6fdbb93b543d33b13ca43"
-dependencies = [
- "getrandom 0.2.16",
- "libredox",
- "thiserror 1.0.69",
 ]
 
 [[package]]

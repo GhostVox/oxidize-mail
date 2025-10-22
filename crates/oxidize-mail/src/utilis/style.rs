@@ -1,4 +1,4 @@
-use crate::config;
+use oxidize_mail_types::{UserConfig,ColorScheme};
 use gtk4::gdk::Display;
 use gtk4::prelude::*;
 use gtk4::{ApplicationWindow, CssProvider, Settings};
@@ -32,11 +32,11 @@ pub fn load_css() {
 /// ```
 /// apply_theme(&window, settings_rc.clone());
 /// ```
-pub fn apply_theme(window: &ApplicationWindow, config: Rc<RefCell<config::AppConfig>>) {
+pub fn apply_theme(window: &ApplicationWindow, config: Rc<RefCell<UserConfig>>) {
     let should_use_dark = match config.borrow().get_preferred_color_scheme() {
-        config::ColorScheme::Light => false,
-        config::ColorScheme::Dark => true,
-        config::ColorScheme::System => {
+        ColorScheme::Light => false,
+        ColorScheme::Dark => true,
+        ColorScheme::System => {
             // Check GTK system preference
             let gtk_settings = Settings::default().expect("Could not get GTK settings");
             gtk_settings.property::<bool>("gtk-application-prefer-dark-theme")

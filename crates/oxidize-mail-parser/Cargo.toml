@@ -11,6 +11,7 @@ description = "Email parsing and MIME handling for Oxidize Mail"
 # Email parsing
 mail-parser.workspace = true
 thiserror.workspace = true
+oxidize-mail-types = {path = "../oxidize-mail-types"}
 # Date/Time handling
 chrono.workspace = true
 

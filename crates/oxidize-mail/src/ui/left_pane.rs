@@ -1,4 +1,3 @@
-use crate::config;
 use crate::settings_dialog;
 use fake::faker::internet::en::SafeEmail;
 use fake::faker::lorem::en::Sentence;
@@ -13,8 +12,8 @@ use gtk4::{
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use webkit6::prelude::WebViewExt;
-use webkit6::WebView;
+use oxidize_mail_types::UserConfig;
+
 /// Renders teh settings button in the folder sidebar.
 ///
 /// # Examples
@@ -25,7 +24,7 @@ use webkit6::WebView;
 /// Creates the settings button with dialog connection.
 pub fn create_settings_button(
     window: &ApplicationWindow,
-    config: Rc<RefCell<config::AppConfig>>,
+    config: Rc<RefCell<UserConfig>>,
 ) -> Button {
     let settings_button = Button::builder()
         .label("⚙️  Settings")
@@ -54,19 +53,12 @@ pub fn create_settings_button(
 }
 
 pub fn create_left_pane(
-    settings_rc: Rc<RefCell<config::AppConfig>>,
+    settings_rc: Rc<RefCell<UserConfig>>,
     title_rc: Rc<RefCell<Label>>,
     window: &ApplicationWindow,
-    email_header_rc: Rc<RefCell<Box>>,
-    webkit_box_rc: Rc<RefCell<WebView>>,
 ) -> (Paned, Box) {
     let emails = Rc::new(RefCell::new(generate_sample_emails()));
-    let (email_list_container, email_listbox) = create_email_list_widgets(
-        emails.clone(),
-        email_header_rc.clone(),
-        webkit_box_rc.clone(),
-        title_rc.clone(),
-    );
+    let (email_list_container, email_listbox) = create_email_list_widgets();
 
     let email_listbox_rc = Rc::new(RefCell::new(email_listbox));
     // 2. Populate the list with initial data
@@ -100,12 +92,7 @@ pub fn create_left_pane(
 /// ```
 /// let (email_list_container, email_listbox) = create_email_list_widgets();
 /// ```
-pub fn create_email_list_widgets(
-    emails: Rc<RefCell<HashMap<String, Vec<Email>>>>,
-    email_header_rc: Rc<RefCell<Box>>,
-    webkit_box_rc: Rc<RefCell<WebView>>,
-    title_rc: Rc<RefCell<Label>>,
-) -> (Box, ListBox) {
+pub fn create_email_list_widgets() -> (Box, ListBox) {
     let list_container = Box::new(Orientation::Vertical, 0);
     list_container.set_vexpand(true);
     list_container.set_hexpand(true);
@@ -117,30 +104,15 @@ pub fn create_email_list_widgets(
 
     let listbox = ListBox::new();
 
-    listbox.connect_row_selected(clone!(
-        #[strong]
-        emails,
-        #[strong]
-        email_header_rc,
-        #[strong]
-        webkit_box_rc,
-        move |_, row| {
-            if let Some(row) = row {
-                let index = row.index() as usize;
-                let folder_name = title_rc.borrow().text().to_string();
-                if let Some(email_list) = emails.borrow().get(&folder_name) {
-                    if index < email_list.len() {
-                        let selected_email = &email_list[index];
-                        populate_email_viewer(
-                            email_header_rc.clone(),
-                            webkit_box_rc.clone(),
-                            selected_email,
-                        );
-                    }
-                }
-            }
-        }
-    ));
+    // listbox.connect_row_selected(clone!(
+    //     #[strong]
+    //     emails,
+    //     #[strong]
+    //     email_viewer_box,
+    //     move |_, row| {
+    //         //TODO: Update email viewer with selected email content
+    //     }
+    // ));
     scrolled.set_child(Some(&listbox));
     list_container.append(&scrolled);
     (list_container, listbox)
@@ -168,7 +140,7 @@ pub fn create_email_list_widgets(
 /// ```
 pub fn create_folder_sidebar(
     title_label: Rc<RefCell<Label>>,
-    settings: Rc<RefCell<config::AppConfig>>,
+    settings: Rc<RefCell<UserConfig>>,
     emails: Rc<RefCell<HashMap<String, Vec<Email>>>>,
     email_listbox: Rc<RefCell<ListBox>>, // MODIFIED: Takes the ListBox now
     window: &ApplicationWindow,
@@ -320,8 +292,6 @@ pub fn populate_email_list(
         listbox.remove(&child);
     }
 
-    // TODO: implement a method to limit number of emails shown for performance
-
     // Get the emails for the selected folder and create new rows
     if let Some(email_list) = emails.get(folder_name) {
         for (i, e) in email_list.iter().enumerate() {
@@ -332,7 +302,6 @@ pub fn populate_email_list(
             email_row.set_margin_bottom(4);
             email_row.add_css_class("email-row");
 
-            // TODO: Replace with actual selection logic
             // Hardcoded selection for demonstration
             if i == 7 {
                 email_row.add_css_class("selected");
@@ -375,7 +344,6 @@ pub fn populate_email_list(
     }
 }
 
-// FIXME: deprecate this when IMAP is implemented
 pub fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
     let mut emails: HashMap<String, Vec<Email>> = HashMap::new();
     let folders = vec![
@@ -405,35 +373,37 @@ pub fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
             emails
                 .entry(f.to_string())
                 .or_insert_with(Vec::new)
-                .push(Email::new(subject, sender, preview, time, body));
+                .push(Email {
+                    subject,
+                    sender,
+                    preview,
+                    time,
+                    body,
+                });
         }
     }
     emails
 }
+fn populate_email_viewer() {
 
-fn populate_email_viewer(
-    email_header_rc: Rc<RefCell<Box>>,
-    webkit_box_rc: Rc<RefCell<WebView>>,
-    selected_email: &Email,
-) {
-    let subject = Label::new(Some(&selected_email.subject));
-    subject.set_halign(gtk4::Align::Start);
-    subject.add_css_class("viewer-subject");
+    // let subject = Label::new(Some(&selected_email.subject));
+    // subject.set_halign(gtk4::Align::Start);
+    // subject.add_css_class("viewer-subject");
 
-    let from = Label::new(Some(&selected_email.sender));
-    from.set_halign(gtk4::Align::Start);
-    from.add_css_class("viewer-header");
+    // let from = Label::new(Some(&selected_email.sender));
+    // from.set_halign(gtk4::Align::Start);
+    // from.add_css_class("viewer-header");
 
-    let time = Label::new(Some(&selected_email.time));
-    from.set_halign(gtk4::Align::Start);
-    from.add_css_class("viewer-header");
+    // let time = Label::new(Some(&selected_email.time));
+    // from.set_halign(gtk4::Align::Start);
+    // from.add_css_class("viewer-header");
 
-    while let Some(child) = email_header_rc.borrow().first_child() {
-        email_header_rc.borrow().remove(&child);
-    }
-    email_header_rc.borrow_mut().append(&from);
-    email_header_rc.borrow_mut().append(&subject);
-    email_header_rc.borrow_mut().append(&time);
-
-    webkit_box_rc.borrow().load_html(&selected_email.body, None);
+    // //WARNING: i think this is supposed to be a button or link
+    // let reply_to = Label::new(Some("Reply-To: Best Buy"));
+    // reply_to.set_halign(gtk4::Align::Start);
+    // reply_to.add_css_class("viewer-header");
+    // header_box.append(&subject);
+    // header_box.append(&from);
+    // header_box.append(&reply_to);
+    // header_box.append(&time);
 }
