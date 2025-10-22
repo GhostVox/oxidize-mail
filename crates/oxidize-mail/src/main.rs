@@ -1,9 +1,9 @@
-use gtk4::{glib::clone, prelude::*};
-use webkit6::{prelude::WebViewExt, WebView};
-mod config;
+use gtk4::glib::clone;
+use gtk4::prelude::*;
 use gtk4::{
     glib, Application, ApplicationWindow, Box, Orientation, Paned, PolicyType, ScrolledWindow,
 };
+use oxidize_mail_types::UserConfig;
 mod ui;
 mod utilis;
 use std::cell::RefCell;
@@ -35,7 +35,7 @@ fn main() -> glib::ExitCode {
 /// ```
 fn build_ui(app: &Application) {
     style::load_css();
-    let settings_rc = Rc::new(RefCell::new(config::AppConfig::load()));
+    let settings_rc = Rc::new(RefCell::new(UserConfig::load()));
 
     let window = ApplicationWindow::builder()
         .application(app)
@@ -50,19 +50,9 @@ fn build_ui(app: &Application) {
     let (header, title_rc) = header_bar::create_headerbar(settings_rc.clone());
     window.set_titlebar(Some(&header));
 
-    let (email_viewer, email_header_box, webkit_box_box) = create_email_viewer_widgets();
-
-    let email_header_rc = Rc::new(RefCell::new(email_header_box));
-    let webkit_box_rc = Rc::new(RefCell::new(webkit_box_box));
-
     // --- UI Layout ---
-    let (main_paned, email_list_container) = left_pane::create_left_pane(
-        settings_rc.clone(),
-        title_rc.clone(),
-        &window,
-        email_header_rc.clone(),
-        webkit_box_rc.clone(),
-    );
+    let (main_paned, email_list_container) =
+        left_pane::create_left_pane(settings_rc.clone(), title_rc.clone(), &window);
     let content_paned = Paned::new(Orientation::Horizontal);
 
     // Middle Pane (now using the container we created)
@@ -71,7 +61,7 @@ fn build_ui(app: &Application) {
     content_paned.set_shrink_start_child(false);
 
     // Right Pane
-    content_paned.set_end_child(Some(&email_viewer));
+    //content_paned.set_end_child(Some(&email_viewer));
     content_paned.set_resize_end_child(true);
     content_paned.set_shrink_end_child(false);
 
@@ -94,6 +84,8 @@ fn build_ui(app: &Application) {
     window.present();
 }
 
+//FIXME: Make this dynamic using webkit to render actual email content
+
 /// Creates the email viewer pane.
 ///
 /// # Arguments
@@ -104,8 +96,7 @@ fn build_ui(app: &Application) {
 /// ```
 /// let email_viewer = create_email_viewer(selected_email);
 /// ```
-
-fn create_email_viewer_widgets() -> (Box, Box, WebView) {
+fn create_email_viewer_widgets() -> (Box, Box, Box) {
     let viewer = Box::new(Orientation::Vertical, 0);
     viewer.set_vexpand(true);
     viewer.set_hexpand(true);
@@ -123,24 +114,15 @@ fn create_email_viewer_widgets() -> (Box, Box, WebView) {
     header_box.set_margin_end(20);
     header_box.set_margin_top(20);
     header_box.set_margin_bottom(20);
-    header_box.add_css_class("email-header-box");
+
     content.append(&header_box);
 
-    //TODO: on launch display a welcome message or collapse the box until an email is selected
-    // WebKit WebView for email content
-    let webview = WebView::new();
-    webview.set_vexpand(true);
-    webview.set_hexpand(true);
-    webview.add_css_class("email-webview");
-    webview.load_html(
-        "<h1>Welcome to Oxidize Mail!</h1><p>This is a sample email content rendered using WebKit.</p>",
-        None,
-    );
+    //TODO: fill this box with webkit
+    let viewer_box = Box::new(Orientation::Vertical, 0);
 
-    content.append(&webview);
-
+    content.append(&header_box);
+    content.append(&viewer_box);
     scrolled.set_child(Some(&content));
     viewer.append(&scrolled);
-
-    (viewer, header_box, webview)
+    (viewer, header_box, viewer_box)
 }

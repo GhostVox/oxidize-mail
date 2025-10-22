@@ -18,6 +18,7 @@ path = "src/main.rs"
 oxidize-mail-core = { path = "../oxidize-mail-core" }
 oxidize-mail-parser = { path = "../oxidize-mail-parser" }
 oxidize-mail-storage = { path = "../oxidize-mail-storage" }
+oxidize-mail-types = { path = "../oxidize-mail-types" }
 # WARNING: remove when ready for release
 fake = { version = "4", features = ["derive"] }
 
@@ -36,9 +37,6 @@ env_logger.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 config.workspace = true
-dirs = "6.0"
-toml ="0.9.8"
-tempfile = "3.6.0"
 # --- Optional dependencies ---
 notify-rust = { workspace = true, optional = true }
 secret-service = { workspace = true, optional = true, features = ["rt-tokio-crypto-rust"] }
