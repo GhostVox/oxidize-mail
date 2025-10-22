@@ -10,7 +10,7 @@ description = "Email parsing and MIME handling for Oxidize Mail"
 [dependencies]
 # Email parsing
 mail-parser.workspace = true
-
+thiserror.workspace = true
 # Date/Time handling
 chrono.workspace = true
 

@@ -1,0 +1,12 @@
+[package]
+name = "oxidize-mail-types"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+toml = { version = "0.7", features = ["preserve_order"] }
+dirs = "4.0"

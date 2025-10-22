@@ -10,7 +10,7 @@ description = "Database and caching layer for Oxidize Mail"
 [dependencies]
 # Database
 rusqlite.workspace = true
-
+oxidize-mail-types = { path = "../oxidize-mail-types" }
 # Serialization
 serde.workspace = true
 serde_json.workspace = true
