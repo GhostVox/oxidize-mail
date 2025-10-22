@@ -4,7 +4,7 @@ members = [
     "crates/oxidize-mail",
     "crates/oxidize-mail-core",
     "crates/oxidize-mail-parser",
-    "crates/oxidize-mail-storage",
+    "crates/oxidize-mail-storage", "crates/oxidize-mail-types",
 ]
 
 [workspace.package]
@@ -23,12 +23,12 @@ gio = { version = "0.21", default-features = true }
 webkit6 = "0.5"
 
 # Force zbus to have default features (fixes async-io issue)
-zbus = { version = "5", features=["tokio"] }
+zbus = { version = "5", features = ["tokio"] }
 
 # Email Protocol Libraries
 async-imap = "0.9"
 lettre = "0.11"
-mail-parser = "0.6"
+mail-parser = "0.11.1"
 
 # Authentication & Security
 oauth2 = "4.4"
@@ -57,6 +57,9 @@ pulldown-cmark = "0.9"
 config = "0.13"
 log = "0.4"
 env_logger = "0.10"
+
+# Error Handling
+thiserror = "2.0"
 
 # Utilities
 uuid = { version = "1.4", features = ["v4"] }
