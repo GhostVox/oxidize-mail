@@ -1,7 +1,47 @@
+//! Build script for the Oxidize Mail application.
+//!
+//! This build script compiles GTK/GLib resources into a binary format that can be
+//! embedded into the application. It uses `glib-compile-resources` to process the
+//! resource definition file and generate a compiled resource bundle.
+//!
+//! # Resource Compilation
+//!
+//! The script compiles resources defined in `resources/oxidize-mail.gresource.xml`
+//! into a binary `.gresource` file that gets embedded into the application at
+//! compile time. This allows the application to access CSS files, UI definitions,
+//! and other assets without requiring external files at runtime.
+//!
+//! # Requirements
+//!
+//! - `glib-compile-resources` must be installed on the build system
+//! - Resource files must exist in the `resources/` directory
+//! - Resource definition file must be valid XML
+//!
+//! # Error Handling
+//!
+//! The script will fail the build if:
+//! - `glib-compile-resources` is not found
+//! - Resource compilation fails
+//! - Required resource files are missing
+
 use std::env;
 use std::path::Path;
 use std::process::Command;
-// This is for building the Gtk resources
+
+/// Main build script entry point for compiling GTK resources.
+///
+/// This function performs the following steps:
+/// 1. Sets up Cargo rerun triggers for resource file changes
+/// 2. Determines the output path for the compiled resource file
+/// 3. Executes `glib-compile-resources` to compile the resources
+/// 4. Validates the compilation was successful
+///
+/// # Panics
+///
+/// Panics if:
+/// - `glib-compile-resources` is not installed or not in PATH
+/// - Resource compilation fails for any reason
+/// - Output directory cannot be determined
 fn main() {
     // Tell Cargo to rerun this script if resources change
     println!("cargo:rerun-if-changed=resources/");

@@ -1,20 +1,36 @@
 use gtk4::prelude::*;
 use gtk4::{glib, ApplicationWindow, Box, CheckButton, Label, Orientation, Window};
+use oxidize_mail_types::{ColorScheme, UserConfig};
 use std::cell::RefCell;
 use std::rc::Rc;
-use oxidize_mail_types::{UserConfig,ColorScheme};
 
-/// Creates and displays a settings window for the application.
+/// Creates and displays a modal settings window for the application.
+///
+/// This function constructs a settings dialog window with appearance preferences
+/// and other configuration options. The window is modal and transient to the
+/// parent window, ensuring proper focus management. It includes theme selection
+/// controls and automatically saves configuration changes when closed.
 ///
 /// # Arguments
 ///
-/// * `parent` - Parent window for the dialog
-/// * `config` - Shared reference to application configuration
+/// * `parent` - The parent ApplicationWindow that will own this modal dialog
+/// * `config` - Shared reference to the UserConfig for reading and updating settings
+///
+/// # Returns
+///
+/// The created Window instance for the settings dialog
 ///
 /// # Examples
 ///
-/// ```
-/// show_settings_dialog(&window, config_rc.clone());
+/// ```rust
+/// use gtk4::{ApplicationWindow, prelude::*};
+/// use oxidize_mail_types::UserConfig;
+/// use std::cell::RefCell;
+/// use std::rc::Rc;
+///
+/// let parent_window = ApplicationWindow::new();
+/// let config = Rc::new(RefCell::new(UserConfig::default()));
+/// let settings_window = show_settings_dialog(&parent_window, config);
 /// ```
 pub fn show_settings_dialog(parent: &ApplicationWindow, config: Rc<RefCell<UserConfig>>) -> Window {
     let window = Window::builder()
@@ -66,16 +82,35 @@ pub fn show_settings_dialog(parent: &ApplicationWindow, config: Rc<RefCell<UserC
     window
 }
 
-/// Creates the appearance settings section with theme toggles.
+/// Creates the appearance settings section with color scheme selection controls.
+///
+/// This function constructs a settings section containing radio buttons for
+/// theme selection (Light, Dark, System). The radio buttons are grouped together
+/// and their state is synchronized with the current configuration. When toggled,
+/// the theme is immediately applied to the parent window and the configuration
+/// is updated accordingly.
 ///
 /// # Arguments
 ///
-/// * `config` - Shared reference to application configuration
-/// * `parent` - Parent window to apply theme changes to
+/// * `config` - Shared reference to the UserConfig for reading and updating theme preferences
+/// * `parent` - The parent ApplicationWindow to apply theme changes to immediately
 ///
 /// # Returns
 ///
-/// A Box containing the appearance settings widgets
+/// A Box widget containing the complete appearance settings section with header and controls
+///
+/// # Examples
+///
+/// ```rust
+/// use gtk4::{Box, ApplicationWindow, prelude::*};
+/// use oxidize_mail_types::UserConfig;
+/// use std::cell::RefCell;
+/// use std::rc::Rc;
+///
+/// let parent_window = ApplicationWindow::new();
+/// let config = Rc::new(RefCell::new(UserConfig::default()));
+/// let appearance_section = create_appearance_section(config, &parent_window);
+/// ```
 fn create_appearance_section(config: Rc<RefCell<UserConfig>>, parent: &ApplicationWindow) -> Box {
     let section = Box::new(Orientation::Vertical, 8);
 
@@ -164,12 +199,30 @@ fn create_appearance_section(config: Rc<RefCell<UserConfig>>, parent: &Applicati
     section
 }
 
-/// Applies the configured theme to the application window.
+/// Applies the configured color scheme theme to the application window.
+///
+/// This function reads the user's preferred color scheme from the configuration
+/// and applies the appropriate theme to the window. For the System theme, it
+/// checks GTK's system preference. The function adds or removes the "dark" CSS
+/// class from the window to control theming.
 ///
 /// # Arguments
 ///
-/// * `window` - Application window to apply theme to
-/// * `config` - Application configuration containing theme preference
+/// * `window` - The ApplicationWindow to apply the theme styling to
+/// * `config` - Shared reference to UserConfig containing the theme preference
+///
+/// # Examples
+///
+/// ```rust
+/// use gtk4::{ApplicationWindow, prelude::*};
+/// use oxidize_mail_types::UserConfig;
+/// use std::cell::RefCell;
+/// use std::rc::Rc;
+///
+/// let window = ApplicationWindow::new();
+/// let config = Rc::new(RefCell::new(UserConfig::default()));
+/// apply_theme_to_window(&window, &config);
+/// ```
 fn apply_theme_to_window(window: &ApplicationWindow, config: &Rc<RefCell<UserConfig>>) {
     let should_use_dark = match config.borrow().get_preferred_color_scheme() {
         ColorScheme::Light => false,
@@ -191,4 +244,3 @@ fn apply_theme_to_window(window: &ApplicationWindow, config: &Rc<RefCell<UserCon
         window.remove_css_class("dark");
     }
 }
-

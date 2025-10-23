@@ -1,9 +1,45 @@
-use gtk4::{glib::clone, prelude::*};
-use webkit6::{prelude::WebViewExt, WebView};
+//! Oxidize Mail - A modern email client built with Rust and GTK4.
+//!
+//! This is the main application entry point for Oxidize Mail, a cross-platform
+//! email client built using Rust, GTK4, and WebKit. The application provides
+//! a modern, responsive interface for managing email with support for multiple
+//! accounts, folders, and customizable themes.
+//!
+//! # Features
+//!
+//! - Modern GTK4-based user interface
+//! - WebKit-powered email content rendering
+//! - Customizable themes (Light, Dark, System)
+//! - Folder-based email organization
+//! - Settings dialog for user preferences
+//! - Resource bundling for optimal performance
+//!
+//! # Architecture
+//!
+//! The application follows a modular architecture:
+//! - UI components are organized in the `ui` module
+//! - Utility functions are in the `utilis` module
+//! - Type definitions are provided by `oxidize_mail_types`
+//! - Email parsing is handled by `oxidize_mail_parser`
+//! - Data storage uses `oxidize_mail_storage`
+//!
+//! # Example Usage
+//!
+//! The application is launched from the command line:
+//!
+//! ```bash
+//! cargo run
+//! ```
+//!
+//! This initializes the GTK application, loads resources, applies styling,
+//! and presents the main interface to the user.
+
 use gtk4::{
     glib, Application, ApplicationWindow, Box, Orientation, Paned, PolicyType, ScrolledWindow,
 };
+use gtk4::{glib::clone, prelude::*};
 use oxidize_mail_types::UserConfig;
+use webkit6::{prelude::WebViewExt, WebView};
 mod ui;
 mod utilis;
 use std::cell::RefCell;
@@ -11,9 +47,45 @@ use std::rc::Rc;
 use ui::{header_bar, left_pane, settings_dialog};
 use utilis::{register_resources, style};
 
-
+/// Application identifier used for GTK Application registration.
+///
+/// This constant defines the unique application ID that GTK uses to identify
+/// the Oxidize Mail application. It follows the reverse domain name convention
+/// and is used for application registration, D-Bus integration, and desktop
+/// environment integration.
+///
+/// The ID ensures that the application can be uniquely identified by the
+/// desktop environment and prevents conflicts with other applications.
 const APP_ID: &str = "com.oxidize.mail";
 
+/// Main application entry point.
+///
+/// This function initializes and runs the Oxidize Mail application. It performs
+/// the following initialization steps:
+/// 1. Registers embedded GLib resources
+/// 2. Creates a GTK Application instance with the application ID
+/// 3. Connects the UI builder to the application activation signal
+/// 4. Runs the GTK main event loop
+///
+/// # Returns
+///
+/// A `glib::ExitCode` indicating the application's exit status:
+/// * `SUCCESS` (0) - Application ran and exited normally
+/// * Other codes - Application encountered an error or was terminated
+///
+/// # Examples
+///
+/// The application is typically launched from the command line:
+/// ```bash
+/// cargo run
+/// ```
+///
+/// # Panics
+///
+/// May panic if:
+/// * GTK initialization fails
+/// * Required system resources are unavailable
+/// * Application ID registration conflicts with another running instance
 fn main() -> glib::ExitCode {
     // Register resources first
     register_resources::register_resources();
@@ -23,16 +95,26 @@ fn main() -> glib::ExitCode {
     app.run()
 }
 
-/// Builds the main UI for the application, ment to be used as the `activate` signal handler.
+/// Builds the main UI for the application, meant to be used as the `activate` signal handler.
+///
+/// This function creates the complete application UI including the header bar, main content
+/// panes, email viewer, and settings dialog. It sets up the layout with proper sizing,
+/// applies CSS themes, and establishes all necessary signal connections for user interactions.
 ///
 /// # Arguments
 ///
-/// * `app` - Application instance to build the UI for.
+/// * `app` - The GTK4 Application instance to build the UI for.
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
+/// use gtk4::{Application, prelude::*};
+///
+/// let app = Application::builder()
+///     .application_id("com.oxidize.mail")
+///     .build();
 /// app.connect_activate(build_ui);
+/// app.run();
 /// ```
 fn build_ui(app: &Application) {
     style::load_css();
@@ -95,15 +177,27 @@ fn build_ui(app: &Application) {
     window.present();
 }
 
-/// Creates the email viewer pane.
+/// Creates the email viewer pane widgets including the main container, header box, and WebKit WebView.
 ///
-/// # Arguments
-/// * `selected_email` - The email to display in the viewer.
+/// This function constructs a vertical box container that holds an email header section
+/// and a WebKit WebView for rendering email content. The WebView is configured with
+/// proper expansion settings and CSS classes for styling.
+///
+/// # Returns
+///
+/// A tuple containing:
+/// * `Box` - The main email viewer container
+/// * `Box` - The email header information box
+/// * `WebView` - The WebKit WebView for displaying email content
 ///
 /// # Examples
 ///
-/// ```
-/// let email_viewer = create_email_viewer(selected_email);
+/// ```rust
+/// use gtk4::{Box, prelude::*};
+/// use webkit6::WebView;
+///
+/// let (email_viewer, email_header_box, webkit_webview) = create_email_viewer_widgets();
+/// // Use the returned widgets to build your email display interface
 /// ```
 
 fn create_email_viewer_widgets() -> (Box, Box, WebView) {
