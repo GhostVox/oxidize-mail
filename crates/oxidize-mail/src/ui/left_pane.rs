@@ -17,14 +17,33 @@ use std::rc::Rc;
 use webkit6::prelude::WebViewExt;
 use webkit6::WebView;
 
-/// Renders the settings button in the folder sidebar.
+/// Creates a settings button widget for the folder sidebar with dialog functionality.
+///
+/// This function creates a styled button that displays the settings icon and label.
+/// When clicked, it opens the settings dialog window. The button is configured with
+/// proper margins and CSS classes for consistent styling within the sidebar.
+///
+/// # Arguments
+///
+/// * `window` - The parent ApplicationWindow that will own the settings dialog
+/// * `config` - Shared reference to the UserConfig for managing application settings
+///
+/// # Returns
+///
+/// A configured Button widget with click handler attached
 ///
 /// # Examples
 ///
+/// ```rust
+/// use gtk4::{ApplicationWindow, Button, prelude::*};
+/// use oxidize_mail_types::UserConfig;
+/// use std::cell::RefCell;
+/// use std::rc::Rc;
+///
+/// let window = ApplicationWindow::new();
+/// let config = Rc::new(RefCell::new(UserConfig::default()));
+/// let settings_button = create_settings_button(&window, config);
 /// ```
-/// let settings_button = create_settings_button();
-/// ```
-/// Creates the settings button with a dialog connection.
 pub fn create_settings_button(
     window: &ApplicationWindow,
     config: Rc<RefCell<UserConfig>>,
@@ -55,6 +74,46 @@ pub fn create_settings_button(
     settings_button
 }
 
+/// Creates the left pane containing folder sidebar and email list.
+///
+/// This function constructs the complete left pane of the email client interface,
+/// including the folder navigation sidebar and email list container. It generates
+/// sample email data, sets up the email list widgets with proper event handling,
+/// and creates the folder sidebar with navigation functionality.
+///
+/// # Arguments
+///
+/// * `settings_rc` - Shared reference to UserConfig for persistent settings
+/// * `title_rc` - Shared reference to the header title label for updates
+/// * `window` - Parent ApplicationWindow for dialog creation
+/// * `email_header_rc` - Shared reference to email header display container
+/// * `webkit_box_rc` - Shared reference to WebKit WebView for email content
+///
+/// # Returns
+///
+/// A tuple containing:
+/// * `Paned` - The main horizontal paned widget containing folder sidebar
+/// * `Box` - The email list container widget
+///
+/// # Examples
+///
+/// ```rust
+/// use gtk4::{ApplicationWindow, Label, Box, Paned, prelude::*};
+/// use webkit6::WebView;
+/// use oxidize_mail_types::UserConfig;
+/// use std::cell::RefCell;
+/// use std::rc::Rc;
+///
+/// let window = ApplicationWindow::new();
+/// let settings = Rc::new(RefCell::new(UserConfig::default()));
+/// let title = Rc::new(RefCell::new(Label::new(Some("Inbox"))));
+/// let header_box = Rc::new(RefCell::new(Box::new(gtk4::Orientation::Vertical, 0)));
+/// let webview = Rc::new(RefCell::new(WebView::new()));
+///
+/// let (main_paned, email_container) = create_left_pane(
+///     settings, title, &window, header_box, webview
+/// );
+/// ```
 pub fn create_left_pane(
     settings_rc: Rc<RefCell<UserConfig>>,
     title_rc: Rc<RefCell<Label>>,
@@ -95,12 +154,43 @@ pub fn create_left_pane(
     (main_paned, email_list_container)
 }
 
-/// Creates the email list container and ListBox.
+/// Creates the email list container and ListBox with selection handling.
+///
+/// This function constructs a scrollable container that holds a ListBox for displaying
+/// email items. It sets up row selection handling that updates the email viewer when
+/// an email is selected. The container is configured with proper expansion settings
+/// and CSS classes for styling.
+///
+/// # Arguments
+///
+/// * `emails` - Shared HashMap containing email data organized by folder
+/// * `email_header_rc` - Shared reference to the email header display box
+/// * `webkit_box_rc` - Shared reference to the WebKit WebView for email content
+/// * `title_rc` - Shared reference to the title label for folder name display
+///
+/// # Returns
+///
+/// A tuple containing:
+/// * `Box` - The main email list container with scrolling
+/// * `ListBox` - The ListBox widget for email items
 ///
 /// # Examples
 ///
-/// ```
-/// let (email_list_container, email_listbox) = create_email_list_widgets();
+/// ```rust
+/// use gtk4::{Box, ListBox, prelude::*};
+/// use webkit6::WebView;
+/// use std::cell::RefCell;
+/// use std::rc::Rc;
+/// use std::collections::HashMap;
+///
+/// let emails = Rc::new(RefCell::new(HashMap::new()));
+/// let email_header = Rc::new(RefCell::new(Box::new(gtk4::Orientation::Vertical, 0)));
+/// let webkit_view = Rc::new(RefCell::new(WebView::new()));
+/// let title_label = Rc::new(RefCell::new(gtk4::Label::new(None)));
+///
+/// let (container, listbox) = create_email_list_widgets(
+///     emails, email_header, webkit_view, title_label
+/// );
 /// ```
 pub fn create_email_list_widgets(
     emails: Rc<RefCell<HashMap<String, Vec<Email>>>>,
@@ -148,24 +238,46 @@ pub fn create_email_list_widgets(
     (list_container, listbox)
 }
 
-/// Creates the folder sidebar with folder sections and items;
+/// Creates the folder sidebar with hierarchical folder sections and navigation items.
+///
+/// This function constructs a scrollable sidebar containing organized folder sections
+/// such as "Favorites", "iCloud", and "Smart Mailboxes". Each section contains
+/// clickable folder items that update the main email list when selected. The sidebar
+/// includes a settings button at the bottom and handles folder selection logic.
 ///
 /// # Arguments
 ///
-/// * `title_label` - Label of active inbox, to be updated on folder selection. associated with the
-/// header bar.
-/// * `settings` - Userconfig instance of user preferences. Will be updated on folder selection.
-/// * `emails` - HashMap of email data, used to repopulate the email list on folder selection.
-/// * `email_listbox` - Email list box. The ListBox to be repopulated when a folder is selected.
+/// * `title_label` - Shared reference to the header title label that gets updated when folders are selected
+/// * `settings` - Shared reference to UserConfig for persisting user preferences and selected folder
+/// * `emails` - Shared HashMap containing all email data organized by folder name
+/// * `email_listbox` - Shared reference to the main email ListBox that gets repopulated on folder changes
+/// * `window` - Parent ApplicationWindow for the settings dialog
+///
+/// # Returns
+///
+/// A Box widget containing the complete folder sidebar with all sections and functionality
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
+/// use gtk4::{Box, Label, ListBox, ApplicationWindow, prelude::*};
+/// use oxidize_mail_types::UserConfig;
+/// use std::cell::RefCell;
+/// use std::rc::Rc;
+/// use std::collections::HashMap;
+///
+/// let title_label = Rc::new(RefCell::new(Label::new(Some("Inbox"))));
+/// let settings = Rc::new(RefCell::new(UserConfig::default()));
+/// let emails = Rc::new(RefCell::new(HashMap::new()));
+/// let email_listbox = Rc::new(RefCell::new(ListBox::new()));
+/// let window = ApplicationWindow::new();
+///
 /// let folder_sidebar = create_folder_sidebar(
-///     title_rc.clone(),
-///     settings_rc.clone(),
-///     emails.clone(),
-///     email_listbox_rc, // Pass the reference
+///     title_label,
+///     settings,
+///     emails,
+///     email_listbox,
+///     &window,
 /// );
 /// ```
 pub fn create_folder_sidebar(
@@ -270,6 +382,31 @@ pub fn create_folder_sidebar(
     sidebar.append(&settings_button);
     sidebar
 }
+/// Represents an email message with its basic display information.
+///
+/// This struct contains the essential email data needed for display in the
+/// email list interface. It includes both metadata (subject, sender, timestamp)
+/// and content (preview text, full body) for rendering in the UI.
+///
+/// # Fields
+///
+/// * `subject` - The email subject line
+/// * `sender` - The sender's display name or email address
+/// * `preview` - A short preview of the email content for list display
+/// * `time` - Formatted timestamp string for display
+/// * `body` - The full email body content for the viewer
+///
+/// # Examples
+///
+/// ```rust
+/// let email = Email::new(
+///     "Meeting Tomorrow".to_string(),
+///     "John Doe <john@example.com>".to_string(),
+///     "Don't forget about our meeting...".to_string(),
+///     "2:30 PM".to_string(),
+///     "Don't forget about our meeting tomorrow at 3 PM in the conference room.".to_string(),
+/// );
+/// ```
 pub struct Email {
     subject: String,
     sender: String,
@@ -279,6 +416,35 @@ pub struct Email {
 }
 
 impl Email {
+    /// Creates a new Email instance with the provided information.
+    ///
+    /// This constructor method creates a new Email struct with all the necessary
+    /// fields populated. It's used primarily for generating sample data and
+    /// will eventually be replaced with proper email parsing from IMAP sources.
+    ///
+    /// # Arguments
+    ///
+    /// * `subject` - The email subject line
+    /// * `sender` - The sender's name or email address
+    /// * `preview` - A short preview of the email content
+    /// * `time` - A formatted timestamp string
+    /// * `body` - The complete email body content
+    ///
+    /// # Returns
+    ///
+    /// A new Email instance with the provided data
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// let email = Email::new(
+    ///     "Welcome!".to_string(),
+    ///     "support@example.com".to_string(),
+    ///     "Welcome to our service...".to_string(),
+    ///     "10:15 AM".to_string(),
+    ///     "Welcome to our service! We're excited to have you.".to_string(),
+    /// );
+    /// ```
     pub fn new(
         subject: String,
         sender: String,
@@ -295,23 +461,37 @@ impl Email {
         }
     }
 }
+
 /// Populates the given ListBox with email rows for the specified folder.
+///
+/// This function clears all existing email rows from the ListBox and repopulates it
+/// with emails from the specified folder. Each email is displayed as a row containing
+/// the sender, subject, preview text, and timestamp. The function handles proper
+/// styling and layout for each email row.
 ///
 /// # Arguments
 ///
-/// * `listbox` - ListBox to repopulate with corresponding emails.
-/// * `folder_name` - Name of the folder to get emails for.
-/// * `emails` - Email HashMap containing all email data.
+/// * `listbox` - The ListBox widget to repopulate with email rows
+/// * `folder_name` - The name of the folder to retrieve emails from
+/// * `emails` - HashMap containing all email data organized by folder name
 ///
 /// # Examples
 ///
+/// ```rust
+/// use gtk4::{ListBox, prelude::*};
+/// use std::collections::HashMap;
+///
+/// let listbox = ListBox::new();
+/// let mut emails = HashMap::new();
+/// emails.insert("Inbox".to_string(), vec![/* email data */]);
+///
+/// populate_email_list(&listbox, "Inbox", &emails);
 /// ```
-/// populate_email_list(
-///        &email_listbox_rc.borrow(),
-///        &settings_rc.borrow().get_selected_folder(),
-///        &emails.borrow(),
-/// );
-/// ```
+///
+/// # Note
+///
+/// This function is designed to work with the Email struct and assumes emails
+/// are stored in a HashMap with folder names as keys.
 pub fn populate_email_list(
     listbox: &ListBox,
     folder_name: &str,
@@ -378,6 +558,33 @@ pub fn populate_email_list(
 }
 
 // FIXME: deprecate this when IMAP is implemented
+/// Generates sample email data for testing and demonstration purposes.
+///
+/// This function creates a HashMap of email data organized by folder names,
+/// with each folder containing a collection of randomly generated emails.
+/// It uses the `fake` crate to generate realistic-looking email subjects,
+/// sender addresses, and body content for development and testing.
+///
+/// # Returns
+///
+/// A HashMap where:
+/// * Keys are folder names (e.g., "📥 Inbox", "📤 Sent")
+/// * Values are vectors of Email structs with generated content
+///
+/// # Examples
+///
+/// ```rust
+/// use std::collections::HashMap;
+///
+/// let emails = generate_sample_emails();
+/// let inbox_emails = emails.get("📥 Inbox").unwrap();
+/// assert!(inbox_emails.len() > 0);
+/// ```
+///
+/// # Note
+///
+/// This is a temporary function that will be deprecated when IMAP
+/// integration is implemented for loading real email data.
 pub fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
     let mut emails: HashMap<String, Vec<Email>> = HashMap::new();
     let folders = vec![
@@ -413,6 +620,40 @@ pub fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
     emails
 }
 
+/// Populates the email viewer pane with the selected email's content.
+///
+/// This function updates the email viewer interface to display the selected
+/// email's information. It clears the previous content and populates the
+/// header section with sender, subject, and timestamp information, then
+/// loads the email body into the WebKit WebView for display.
+///
+/// # Arguments
+///
+/// * `email_header_rc` - Shared reference to the email header container Box
+/// * `webkit_box_rc` - Shared reference to the WebKit WebView for content display
+/// * `selected_email` - Reference to the Email struct to display
+///
+/// # Examples
+///
+/// ```rust
+/// use gtk4::{Box, Label, prelude::*};
+/// use webkit6::WebView;
+/// use std::cell::RefCell;
+/// use std::rc::Rc;
+///
+/// let email = Email::new(
+///     "Test Subject".to_string(),
+///     "sender@example.com".to_string(),
+///     "Preview text...".to_string(),
+///     "3:45 PM".to_string(),
+///     "<h1>Email Content</h1>".to_string(),
+/// );
+///
+/// let header_box = Rc::new(RefCell::new(Box::new(gtk4::Orientation::Vertical, 0)));
+/// let webview = Rc::new(RefCell::new(WebView::new()));
+///
+/// populate_email_viewer(header_box, webview, &email);
+/// ```
 fn populate_email_viewer(
     email_header_rc: Rc<RefCell<Box>>,
     webkit_box_rc: Rc<RefCell<WebView>>,

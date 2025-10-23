@@ -6,18 +6,18 @@
 /// present or extracted during parsing.
 ///
 /// # Fields
-/// - `subject` (Option<String>): The subject line of the email, if available.
-/// - `from` (Option<String>): The sender's email address, if available.
-/// - `to` (Option<String>): The recipient's email address, if available.
-/// - `body_text` (Option<String>): The plain-text body content of the email,
+/// - `subject` (`Option<String>`): The subject line of the email, if available.
+/// - `from` (`Option<String>`): The sender's email address, if available.
+/// - `to` (`Option<String>`): The recipient's email address, if available.
+/// - `body_text` (`Option<String>`): The plain-text body content of the email,
 ///    if available.
-/// - `body_html` (Option<String>): The HTML body content of the email, if
+/// - `body_html` (`Option<String>`): The HTML body content of the email, if
 ///    available.
 ///
 /// # Examples
 ///
-/// ```
-/// use oxidize_mail_parser::ParsedEmail;
+/// ```rust
+/// use oxidize_mail_types::ParsedEmail;
 ///
 /// let email = ParsedEmail {
 ///     subject: Some(String::from("Meeting Reminder")),
@@ -46,55 +46,48 @@ pub struct ParsedEmail {
 impl ParsedEmail {
     /// Constructs a `ParsedEmail` instance from a `mail_parser::Message`.
     ///
-    /// This function extracts relevant data from the provided email message, such as
-    /// the `subject`, `from` address, `to` address, and the first instances of
-    /// text and HTML bodies, if available.
+    /// This function extracts relevant data from the provided email message, including
+    /// the subject line, sender and recipient addresses, and both plain text and HTML
+    /// body content when available. It handles missing or malformed data gracefully
+    /// by using `Option<String>` for all fields.
     ///
-    /// # Parameters
-    /// - `msg`: A `mail_parser::Message` representing the parsed representation of the email.
+    /// # Arguments
+    ///
+    /// * `msg` - A `mail_parser::Message` representing the pre-parsed email structure
     ///
     /// # Returns
+    ///
     /// A `ParsedEmail` instance containing:
-    /// - `subject`: The subject of the email as an `Option<String>`. `None` if the subject is not present.
-    /// - `from`: The sender's email address as an `Option<String>`. `None` if the sender is not present.
-    /// - `to`: The recipient's email address as an `Option<String>`. `None` if the recipient is not present.
-    /// - `body_text`: The plain text body of the email as an `Option<String>`. `None` if no plain text body is present.
-    /// - `body_html`: The HTML body of the email as an `Option<String>`. `None` if no HTML body is present.
+    /// - `subject`: The email subject line as `Option<String>`, `None` if not present
+    /// - `from`: The sender's email address as `Option<String>`, `None` if not present
+    /// - `to`: The primary recipient's email address as `Option<String>`, `None` if not present
+    /// - `body_text`: The plain text body content as `Option<String>`, `None` if not present
+    /// - `body_html`: The HTML body content as `Option<String>`, `None` if not present
     ///
-    /// # Usage
-    /// ```
-    /// use mail_parser::MessageParser;
-    ///use oxidize_mail_parser::ParsedEmail;
-    /// let raw_email = "..."; // Raw email string.
-    /// let msgParser = MessageParser::default();
-    /// let msg = msgParser.parse(raw_email.as_bytes()).expect("Failed to parse email");
-    /// let msg = msgParser.parse(raw_email.as_bytes()).expect("Failed to parse email");
-    /// let parsed_email = ParsedEmail::from_message(msg);
+    /// # Examples
     ///
-    /// assert!(parsed_email.subject.is_some());
-    /// assert!(parsed_email.from.is_some());
-    /// assert!(parsed_email.to.is_some());
-    /// ```
-    ///
-    /// # Example Output
-    /// Given a valid email message:
-    /// ```
-    /// Subject: "Hello, World!"
-    /// From: "example@example.com"
-    /// To: "recipient@example.com"
-    /// ```
-    /// The function will return:
     /// ```rust
-    /// ParsedEmail {
-    ///     subject: Some("Hello, World!".to_string()),
-    ///     from: Some("example@example.com".to_string()),
-    ///     to: Some("recipient@example.com".to_string()),
-    ///     body_text: Some("...".to_string()), // if plain text exists
-    ///     body_html: Some("...".to_string()), // if HTML exists
+    /// use mail_parser::MessageParser;
+    /// use oxidize_mail_types::ParsedEmail;
+    ///
+    /// let raw_email = b"From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Hello World\r\n\r\nThis is the email body.";
+    /// let parser = MessageParser::default();
+    ///
+    /// if let Some(msg) = parser.parse(raw_email) {
+    ///     let parsed_email = ParsedEmail::from_message(msg);
+    ///
+    ///     assert_eq!(parsed_email.subject.as_deref(), Some("Hello World"));
+    ///     assert_eq!(parsed_email.from.as_deref(), Some("sender@example.com"));
+    ///     assert_eq!(parsed_email.to.as_deref(), Some("recipient@example.com"));
+    ///     assert!(parsed_email.body_text.is_some());
     /// }
     /// ```
     ///
-    /// Note: All extracted data is optional and subject to the parsing result of `mail_parser::MessageParser`.
+    /// # Note
+    ///
+    /// - Only the first recipient in the "To" field is extracted
+    /// - Only the first text and HTML body parts are extracted for simplicity
+    /// - All fields are optional to handle incomplete or malformed emails gracefully
     pub fn from_message(msg: mail_parser::Message) -> ParsedEmail {
         let subject = msg.subject().map(|s| s.to_string());
 
@@ -122,7 +115,36 @@ impl ParsedEmail {
         }
     }
 
-    // Helper function to get the body text
+    /// Returns a clone of the email's plain text body content.
+    ///
+    /// This is a convenience method that provides access to the plain text body
+    /// of the email. The `max_length` parameter is currently unused but reserved
+    /// for future functionality to truncate long email bodies.
+    ///
+    /// # Arguments
+    ///
+    /// * `_max_length` - Maximum length for the returned text (currently unused)
+    ///
+    /// # Returns
+    ///
+    /// An `Option<String>` containing the plain text body, or `None` if no text body exists
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use oxidize_mail_types::ParsedEmail;
+    ///
+    /// let email = ParsedEmail {
+    ///     subject: Some("Test".to_string()),
+    ///     from: Some("sender@example.com".to_string()),
+    ///     to: Some("recipient@example.com".to_string()),
+    ///     body_text: Some("Hello, world!".to_string()),
+    ///     body_html: None,
+    /// };
+    ///
+    /// let body = email.body_text(1000);
+    /// assert_eq!(body.as_deref(), Some("Hello, world!"));
+    /// ```
     pub fn body_text(&self, _max_length: usize) -> Option<String> {
         self.body_text.clone()
     }
