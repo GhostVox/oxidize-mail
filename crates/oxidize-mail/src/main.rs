@@ -88,6 +88,7 @@ const APP_ID: &str = "com.oxidize.mail";
 /// * Application ID registration conflicts with another running instance
 fn main() -> glib::ExitCode {
     // Register resources first
+    env_logger::init();
     register_resources::register_resources();
 
     let app = Application::builder().application_id(APP_ID).build();
@@ -199,7 +200,6 @@ fn build_ui(app: &Application) {
 /// let (email_viewer, email_header_box, webkit_webview) = create_email_viewer_widgets();
 /// // Use the returned widgets to build your email display interface
 /// ```
-
 fn create_email_viewer_widgets() -> (Box, Box, WebView) {
     let viewer = Box::new(Orientation::Vertical, 0);
     viewer.set_vexpand(true);
