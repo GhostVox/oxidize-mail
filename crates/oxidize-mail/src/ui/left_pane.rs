@@ -9,6 +9,7 @@ use gtk4::Paned;
 use gtk4::{
     ApplicationWindow, Box, Button, Label, ListBox, Orientation, PolicyType, ScrolledWindow,
 };
+use oxidize_mail_types::ParsedEmail;
 use oxidize_mail_types::UserConfig;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -193,7 +194,7 @@ pub fn create_left_pane(
 /// );
 /// ```
 pub fn create_email_list_widgets(
-    emails: Rc<RefCell<HashMap<String, Vec<Email>>>>,
+    emails: Rc<RefCell<HashMap<String, Vec<ParsedEmail>>>>,
     email_header_rc: Rc<RefCell<Box>>,
     webkit_box_rc: Rc<RefCell<WebView>>,
     title_rc: Rc<RefCell<Label>>,
@@ -283,7 +284,7 @@ pub fn create_email_list_widgets(
 pub fn create_folder_sidebar(
     title_label: Rc<RefCell<Label>>,
     settings: Rc<RefCell<UserConfig>>,
-    emails: Rc<RefCell<HashMap<String, Vec<Email>>>>,
+    emails: Rc<RefCell<HashMap<String, Vec<ParsedEmail>>>>,
     email_listbox: Rc<RefCell<ListBox>>, // MODIFIED: Takes the ListBox now
     window: &ApplicationWindow,
 ) -> Box {
@@ -495,7 +496,7 @@ impl Email {
 pub fn populate_email_list(
     listbox: &ListBox,
     folder_name: &str,
-    emails: &HashMap<String, Vec<Email>>,
+    emails: &HashMap<String, Vec<ParsedEmail>>,
 ) {
     // Clear existing rows
     while let Some(child) = listbox.first_child() {
@@ -507,6 +508,7 @@ pub fn populate_email_list(
     // Get the emails for the selected folder and create new rows
     if let Some(email_list) = emails.get(folder_name) {
         for (i, e) in email_list.iter().enumerate() {
+            log::debug!("{:?}", e);
             let email_row = Box::new(Orientation::Horizontal, 0);
             email_row.set_margin_start(8);
             email_row.set_margin_end(8);
@@ -523,20 +525,18 @@ pub fn populate_email_list(
             let content_box = Box::new(Orientation::Vertical, 2);
             content_box.set_hexpand(true);
 
-            if !e.sender.is_empty() {
-                let sender_label = Label::new(Some(&e.sender));
-                sender_label.set_halign(gtk4::Align::Start);
-                sender_label.add_css_class("email-sender");
-                sender_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-                content_box.append(&sender_label);
-            }
+            let sender_label = Label::new(e.from.as_deref());
+            sender_label.set_halign(gtk4::Align::Start);
+            sender_label.add_css_class("email-sender");
+            sender_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+            content_box.append(&sender_label);
 
-            let subject_label = Label::new(Some(&e.subject));
+            let subject_label = Label::new(e.subject.as_deref());
             subject_label.set_halign(gtk4::Align::Start);
             subject_label.add_css_class("email-subject");
             subject_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
 
-            let preview_label = Label::new(Some(&e.preview));
+            let preview_label = Label::new(Some(&e.preview()));
             preview_label.set_halign(gtk4::Align::Start);
             preview_label.add_css_class("email-preview");
             preview_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
@@ -544,7 +544,7 @@ pub fn populate_email_list(
             content_box.append(&subject_label);
             content_box.append(&preview_label);
 
-            let time_label = Label::new(Some(&e.time));
+            let time_label = Label::new(Some(&e.time_string()));
             time_label.set_halign(gtk4::Align::End);
             time_label.set_valign(gtk4::Align::Start);
             time_label.add_css_class("email-time");
@@ -585,8 +585,8 @@ pub fn populate_email_list(
 ///
 /// This is a temporary function that will be deprecated when IMAP
 /// integration is implemented for loading real email data.
-pub fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
-    let mut emails: HashMap<String, Vec<Email>> = HashMap::new();
+pub fn generate_sample_emails() -> HashMap<String, Vec<ParsedEmail>> {
+    let mut emails: HashMap<String, Vec<ParsedEmail>> = HashMap::new();
     let folders = vec![
         "📥 Inbox",
         "📤 Sent",
@@ -603,7 +603,6 @@ pub fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
             let sender_email: String = SafeEmail().fake();
             let sender = format!("Inbox - {}", sender_email);
             let body: String = Sentence(50..100).fake();
-            let preview: String = body.chars().take(60).collect();
             let time = format!(
                 "{}:{:02} {}",
                 (1..12).fake::<u8>(),
@@ -614,7 +613,14 @@ pub fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
             emails
                 .entry(f.to_string())
                 .or_insert_with(Vec::new)
-                .push(Email::new(subject, sender, preview, time, body));
+                .push(ParsedEmail {
+                    subject: Some(subject),
+                    from: Some(sender),
+                    to: None,
+                    body_text: Some(body.clone()),
+                    body_html: None,
+                    timestamp: Some(time),
+                });
         }
     }
     emails
@@ -657,17 +663,33 @@ pub fn generate_sample_emails() -> HashMap<String, Vec<Email>> {
 fn populate_email_viewer(
     email_header_rc: Rc<RefCell<Box>>,
     webkit_box_rc: Rc<RefCell<WebView>>,
-    selected_email: &Email,
+    selected_email: &ParsedEmail,
 ) {
-    let subject = Label::new(Some(&selected_email.subject));
+    log::info!(
+        "Populating email viewer for email: {:?}",
+        selected_email.subject
+    );
+    let subject = Label::new(selected_email.subject.as_deref());
     subject.set_halign(gtk4::Align::Start);
     subject.add_css_class("viewer-subject");
 
-    let from = Label::new(Some(&selected_email.sender));
+    log::info!("Selected email from: {:?}", selected_email.from.as_deref());
+    let from = Label::new(Some(
+        selected_email.from.as_deref().unwrap_or("Unknown Sender"),
+    ));
     from.set_halign(gtk4::Align::Start);
     from.add_css_class("viewer-header");
 
-    let time = Label::new(Some(&selected_email.time));
+    log::info!(
+        "Selected email time: {:?}",
+        selected_email.timestamp.as_deref()
+    );
+    let time = Label::new(Some(
+        selected_email
+            .timestamp
+            .as_deref()
+            .unwrap_or("Unknown Time"),
+    ));
     from.set_halign(gtk4::Align::Start);
     from.add_css_class("viewer-header");
 
@@ -678,5 +700,9 @@ fn populate_email_viewer(
     email_header_rc.borrow_mut().append(&subject);
     email_header_rc.borrow_mut().append(&time);
 
-    webkit_box_rc.borrow().load_html(&selected_email.body, None);
+    //TODO: Find a better way to handle HTML vs Plain Text emails
+    log::info!("Loading email body into WebView");
+    webkit_box_rc
+        .borrow()
+        .load_html(&selected_email.body_text.as_deref().unwrap(), None);
 }

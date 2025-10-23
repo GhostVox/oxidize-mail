@@ -41,6 +41,7 @@ pub struct ParsedEmail {
     pub to: Option<String>,
     pub body_text: Option<String>,
     pub body_html: Option<String>,
+    pub timestamp: Option<String>,
 }
 
 impl ParsedEmail {
@@ -105,6 +106,7 @@ impl ParsedEmail {
 
         let body_text = msg.body_text(0).map(|b| b.to_string());
         let body_html = msg.body_html(0).map(|b| b.to_string());
+        let timestamp = msg.date();
 
         ParsedEmail {
             subject,
@@ -112,6 +114,7 @@ impl ParsedEmail {
             to,
             body_text,
             body_html,
+            timestamp: timestamp.map(|s| s.to_string()),
         }
     }
 
@@ -147,5 +150,28 @@ impl ParsedEmail {
     /// ```
     pub fn body_text(&self, _max_length: usize) -> Option<String> {
         self.body_text.clone()
+    }
+
+    pub fn preview(&self) -> String {
+        //generate a short preview of the body
+        if let Some(body) = &self.body_text {
+            let preview_length = 50;
+            if body.len() > preview_length {
+                format!("{}...", &body[..preview_length])
+            } else {
+                body.clone()
+            }
+        } else {
+            String::from("(No body text)")
+        }
+    }
+
+    //TODO: this is a standin, implement proper formatting
+    pub fn time_string(&self) -> String {
+        if let Some(timestamp) = &self.timestamp {
+            format!("{}", timestamp)
+        } else {
+            String::from("(No timestamp)")
+        }
     }
 }

@@ -34,7 +34,7 @@
 
 use oxidize_mail_types::AppConfig;
 
-use rusqlite::{params, Connection, Result};
+use rusqlite::{Connection, Result};
 
 /// Database connection wrapper for Oxidize Mail storage operations.
 ///
@@ -102,40 +102,7 @@ impl DB {
     }
 }
 
-/// Adds two unsigned 64-bit integers together.
-///
-/// This is a placeholder function that will be replaced with actual
-/// storage functionality as the application develops. Currently it
-/// serves as a simple example for testing purposes.
-///
-/// # Arguments
-///
-/// * `left` - The first number to add
-/// * `right` - The second number to add
-///
-/// # Returns
-///
-/// The sum of `left` and `right`
-///
-/// # Examples
-///
-/// ```rust
-/// use oxidize_mail_storage::add;
-///
-/// let result = add(2, 3);
-/// assert_eq!(result, 5);
-/// ```
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
 }
