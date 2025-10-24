@@ -115,6 +115,7 @@ pub fn create_settings_button(
 ///     settings, title, &window, header_box, webview
 /// );
 /// ```
+//TODO: refactor so that create_email_list_widgets is not called here
 pub fn create_left_pane(
     settings_rc: Rc<RefCell<UserConfig>>,
     title_rc: Rc<RefCell<Label>>,
@@ -230,6 +231,8 @@ pub fn create_email_list_widgets(
                             selected_email,
                         );
                     }
+                    //TODO: switch the CSS class for selected row
+                    //remove "selected" class from current selected row
                 }
             }
         }
