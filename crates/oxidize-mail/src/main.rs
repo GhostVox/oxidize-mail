@@ -134,10 +134,14 @@ fn build_ui(app: &Application) {
     let (header, title_rc) = header_bar::create_headerbar(settings_rc.clone());
     window.set_titlebar(Some(&header));
 
+    //RIGHT PANE
     let (email_viewer, email_header_box, webkit_box_box) = create_email_viewer_widgets();
 
     let email_header_rc = Rc::new(RefCell::new(email_header_box));
     let webkit_box_rc = Rc::new(RefCell::new(webkit_box_box));
+
+    //MIDDLE PANE
+    //TODO: move email list creation to middle_pane module and call it her
 
     // --- UI Layout ---
     let (main_paned, email_list_container) = left_pane::create_left_pane(
