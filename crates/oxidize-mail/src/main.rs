@@ -40,8 +40,10 @@ use gtk4::{
 use gtk4::{glib::clone, prelude::*};
 use oxidize_mail_types::UserConfig;
 use webkit6::{prelude::WebViewExt, WebView};
+mod startup;
 mod ui;
 mod utilis;
+use startup::startup;
 use std::cell::RefCell;
 use std::rc::Rc;
 use ui::{header_bar, left_pane, settings_dialog};
@@ -90,6 +92,7 @@ fn main() -> glib::ExitCode {
     // Register resources first
     env_logger::init();
     register_resources::register_resources();
+    let coreService = startup();
 
     let app = Application::builder().application_id(APP_ID).build();
     app.connect_activate(build_ui);
