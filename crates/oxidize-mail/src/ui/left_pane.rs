@@ -15,14 +15,14 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use webkit6::prelude::WebViewExt;
 use webkit6::WebView;
-/// Renders teh settings button in the folder sidebar.
+/// Renders the settings button in the folder sidebar.
 ///
 /// # Examples
 ///
 /// ```
 /// let settings_button = create_settings_button();
 /// ```
-/// Creates the settings button with dialog connection.
+/// Creates the settings button with a dialog connection.
 pub fn create_settings_button(
     window: &ApplicationWindow,
     config: Rc<RefCell<config::AppConfig>>,
@@ -36,14 +36,14 @@ pub fn create_settings_button(
     settings_button.add_css_class("settings-button");
     settings_button.set_halign(gtk4::Align::Start);
 
-    // Connect click signal to show settings window
+    // Connect click signal to show a settings window
     let window_weak = window.downgrade();
     settings_button.connect_clicked(clone!(
         #[strong]
         config,
         move |_| {
             if let Some(window) = window_weak.upgrade() {
-                // Show settings window (returns Window, not Dialog)
+                // Show the settings window (returns Window, not Dialog)
                 let _settings_window =
                     settings_dialog::show_settings_dialog(&window, config.clone());
             }
@@ -59,6 +59,7 @@ pub fn create_left_pane(
     window: &ApplicationWindow,
     email_header_rc: Rc<RefCell<Box>>,
     webkit_box_rc: Rc<RefCell<WebView>>,
+    previous_selected_row: Rc<RefCell<Option<gtk4::ListBoxRow>>>,
 ) -> (Paned, Box) {
     let emails = Rc::new(RefCell::new(generate_sample_emails()));
     let (email_list_container, email_listbox) = create_email_list_widgets(
@@ -66,6 +67,7 @@ pub fn create_left_pane(
         email_header_rc.clone(),
         webkit_box_rc.clone(),
         title_rc.clone(),
+        previous_selected_row.clone(),
     );
 
     let email_listbox_rc = Rc::new(RefCell::new(email_listbox));
@@ -90,7 +92,7 @@ pub fn create_left_pane(
     main_paned.set_start_child(Some(&folder_sidebar));
     main_paned.set_resize_start_child(false);
     main_paned.set_shrink_start_child(false);
-    return (main_paned, email_list_container);
+    (main_paned, email_list_container)
 }
 
 /// Creates the email list container and ListBox.
@@ -105,6 +107,7 @@ pub fn create_email_list_widgets(
     email_header_rc: Rc<RefCell<Box>>,
     webkit_box_rc: Rc<RefCell<WebView>>,
     title_rc: Rc<RefCell<Label>>,
+    previous_selected_row: Rc<RefCell<Option<gtk4::ListBoxRow>>>,
 ) -> (Box, ListBox) {
     let list_container = Box::new(Orientation::Vertical, 0);
     list_container.set_vexpand(true);
@@ -124,8 +127,23 @@ pub fn create_email_list_widgets(
         email_header_rc,
         #[strong]
         webkit_box_rc,
+        #[strong]
+        title_rc,
+        #[strong]
+        previous_selected_row,
         move |_, row| {
             if let Some(row) = row {
+                if let Some(child) = row.child(){
+                   child.add_css_class("selected");
+                }
+                //TODO: Implement logic to deselect previously selected row.
+                if let Some(prev_row) = previous_selected_row.borrow_mut().take() {
+                    if let Some(child) = prev_row.child() {
+                        child.remove_css_class("selected");
+                    }
+                }
+                *previous_selected_row.borrow_mut() = Some(row.clone());
+
                 let index = row.index() as usize;
                 let folder_name = title_rc.borrow().text().to_string();
                 if let Some(email_list) = emails.borrow().get(&folder_name) {
@@ -150,7 +168,7 @@ pub fn create_email_list_widgets(
 ///
 /// # Arguments
 ///
-/// * `title_label` - Label of active inbox, to be updated on folder selection. associated with the
+/// * `title_label` - Label of active inbox, to be updated on folder selection. Associated with the
 /// header bar.
 /// * `settings` - Appconfig instance of user preferences. Will be updated on folder selection.
 /// * `emails` - HashMap of email data, used to repopulate the email list on folder selection.
@@ -293,11 +311,11 @@ impl Email {
         }
     }
 }
-/// Populates the given ListBox with email rows for teh specified folder.
+/// Populates the given ListBox with email rows for the specified folder.
 ///
 /// # Arguments
 ///
-/// * `listbox` - ListBox to repopulate with correspoinding emails.
+/// * `listbox` - ListBox to repopulate with corresponding emails.
 /// * `folder_name` - Name of the folder to get emails for.
 /// * `emails` - Email HashMap containing all email data.
 ///
@@ -324,7 +342,7 @@ pub fn populate_email_list(
 
     // Get the emails for the selected folder and create new rows
     if let Some(email_list) = emails.get(folder_name) {
-        for (i, e) in email_list.iter().enumerate() {
+        for (_, e) in email_list.iter().enumerate() {
             let email_row = Box::new(Orientation::Horizontal, 0);
             email_row.set_margin_start(8);
             email_row.set_margin_end(8);
@@ -332,11 +350,6 @@ pub fn populate_email_list(
             email_row.set_margin_bottom(4);
             email_row.add_css_class("email-row");
 
-            // TODO: Replace with actual selection logic
-            // Hardcoded selection for demonstration
-            if i == 7 {
-                email_row.add_css_class("selected");
-            }
 
             let content_box = Box::new(Orientation::Vertical, 2);
             content_box.set_hexpand(true);
@@ -425,8 +438,8 @@ fn populate_email_viewer(
     from.add_css_class("viewer-header");
 
     let time = Label::new(Some(&selected_email.time));
-    from.set_halign(gtk4::Align::Start);
-    from.add_css_class("viewer-header");
+    time.set_halign(gtk4::Align::Start);  // <-- BUG: Should be `time`, not `from`
+    time.add_css_class("viewer-header");  // <-- BUG: Should be `time`, not `from`
 
     while let Some(child) = email_header_rc.borrow().first_child() {
         email_header_rc.borrow().remove(&child);
