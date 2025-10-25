@@ -11,6 +11,10 @@ description = "Database and caching layer for Oxidize Mail"
 # Database
 rusqlite.workspace = true
 oxidize-mail-types = { path = "../oxidize-mail-types" }
+
+# Migrations
+refinery = { version = "0.9.0", features = ["rusqlite"] }
+
 # Serialization
 serde.workspace = true
 serde_json.workspace = true

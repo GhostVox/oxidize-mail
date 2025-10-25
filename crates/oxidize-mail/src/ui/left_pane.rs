@@ -442,7 +442,7 @@ pub fn populate_email_list(
 
             // TODO: Replace with actual selection logic
             // Hardcoded selection for demonstration
-            if i == 7 {
+            if i == 1 {
                 email_row.add_css_class("selected");
             }
 

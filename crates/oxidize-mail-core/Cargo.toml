@@ -12,6 +12,9 @@ description = "Core email protocol handling (IMAP/SMTP) for Oxidize Mail"
 async-imap.workspace = true
 lettre.workspace = true
 
+oxidize-mail-storage = { path = "../oxidize-mail-storage" }
+oxidize-mail-types = { path = "../oxidize-mail-types/" }
+
 # Authentication & Security
 oauth2.workspace = true
 rustls.workspace = true
