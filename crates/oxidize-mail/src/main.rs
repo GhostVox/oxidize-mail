@@ -142,6 +142,7 @@ fn build_ui(app: &Application) {
 
     let email_header_rc = Rc::new(RefCell::new(email_header_box));
     let webkit_box_rc = Rc::new(RefCell::new(webkit_box_box));
+    let previous_selected_email = Rc::new(RefCell::new(None));
 
     //MIDDLE PANE
     //TODO: move email list creation to middle_pane module and call it her
@@ -153,6 +154,7 @@ fn build_ui(app: &Application) {
         &window,
         email_header_rc.clone(),
         webkit_box_rc.clone(),
+        previous_selected_email.clone(),
     );
     let content_paned = Paned::new(Orientation::Horizontal);
 

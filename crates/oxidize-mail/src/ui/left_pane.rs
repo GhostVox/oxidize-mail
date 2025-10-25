@@ -45,6 +45,9 @@ use webkit6::WebView;
 /// let config = Rc::new(RefCell::new(UserConfig::default()));
 /// let settings_button = create_settings_button(&window, config);
 /// ```
+/// let settings_button = create_settings_button();
+/// ```
+/// Creates the settings button with a dialog connection.
 pub fn create_settings_button(
     window: &ApplicationWindow,
     config: Rc<RefCell<UserConfig>>,
@@ -122,6 +125,7 @@ pub fn create_left_pane(
     window: &ApplicationWindow,
     email_header_rc: Rc<RefCell<Box>>,
     webkit_box_rc: Rc<RefCell<WebView>>,
+    previous_selected_row: Rc<RefCell<Option<gtk4::ListBoxRow>>>,
 ) -> (Paned, Box) {
     let emails = Rc::new(RefCell::new(generate_sample_emails()));
     let (email_list_container, email_listbox) = create_email_list_widgets(
@@ -129,6 +133,7 @@ pub fn create_left_pane(
         email_header_rc.clone(),
         webkit_box_rc.clone(),
         title_rc.clone(),
+        previous_selected_row.clone(),
     );
 
     let email_listbox_rc = Rc::new(RefCell::new(email_listbox));
@@ -199,6 +204,7 @@ pub fn create_email_list_widgets(
     email_header_rc: Rc<RefCell<Box>>,
     webkit_box_rc: Rc<RefCell<WebView>>,
     title_rc: Rc<RefCell<Label>>,
+    previous_selected_row: Rc<RefCell<Option<gtk4::ListBoxRow>>>,
 ) -> (Box, ListBox) {
     let list_container = Box::new(Orientation::Vertical, 0);
     list_container.set_vexpand(true);
@@ -218,8 +224,23 @@ pub fn create_email_list_widgets(
         email_header_rc,
         #[strong]
         webkit_box_rc,
+        #[strong]
+        title_rc,
+        #[strong]
+        previous_selected_row,
         move |_, row| {
             if let Some(row) = row {
+                if let Some(child) = row.child(){
+                   child.add_css_class("selected");
+                }
+                //TODO: Implement logic to deselect previously selected row.
+                if let Some(prev_row) = previous_selected_row.borrow_mut().take() {
+                    if let Some(child) = prev_row.child() {
+                        child.remove_css_class("selected");
+                    }
+                }
+                *previous_selected_row.borrow_mut() = Some(row.clone());
+
                 let index = row.index() as usize;
                 let folder_name = title_rc.borrow().text().to_string();
                 if let Some(email_list) = emails.borrow().get(&folder_name) {
@@ -431,8 +452,7 @@ pub fn populate_email_list(
 
     // Get the emails for the selected folder and create new rows
     if let Some(email_list) = emails.get(folder_name) {
-        for (i, e) in email_list.iter().enumerate() {
-            log::debug!("{:?}", e);
+        for (_, e) in email_list.iter().enumerate() {
             let email_row = Box::new(Orientation::Horizontal, 0);
             email_row.set_margin_start(8);
             email_row.set_margin_end(8);
@@ -604,18 +624,9 @@ fn populate_email_viewer(
     from.set_halign(gtk4::Align::Start);
     from.add_css_class("viewer-header");
 
-    log::info!(
-        "Selected email time: {:?}",
-        selected_email.timestamp.as_deref()
-    );
-    let time = Label::new(Some(
-        selected_email
-            .timestamp
-            .as_deref()
-            .unwrap_or("Unknown Time"),
-    ));
-    from.set_halign(gtk4::Align::Start);
-    from.add_css_class("viewer-header");
+    let time = Label::new(Some(&selected_email.time));
+    time.set_halign(gtk4::Align::Start);  // <-- BUG: Should be `time`, not `from`
+    time.add_css_class("viewer-header");  // <-- BUG: Should be `time`, not `from`
 
     while let Some(child) = email_header_rc.borrow().first_child() {
         email_header_rc.borrow().remove(&child);
