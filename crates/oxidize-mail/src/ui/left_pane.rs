@@ -230,8 +230,8 @@ pub fn create_email_list_widgets(
         previous_selected_row,
         move |_, row| {
             if let Some(row) = row {
-                if let Some(child) = row.child(){
-                   child.add_css_class("selected");
+                if let Some(child) = row.child() {
+                    child.add_css_class("selected");
                 }
                 //TODO: Implement logic to deselect previously selected row.
                 if let Some(prev_row) = previous_selected_row.borrow_mut().take() {
@@ -462,9 +462,6 @@ pub fn populate_email_list(
 
             // TODO: Replace with actual selection logic
             // Hardcoded selection for demonstration
-            if i == 1 {
-                email_row.add_css_class("selected");
-            }
 
             let content_box = Box::new(Orientation::Vertical, 2);
             content_box.set_hexpand(true);
@@ -624,9 +621,9 @@ fn populate_email_viewer(
     from.set_halign(gtk4::Align::Start);
     from.add_css_class("viewer-header");
 
-    let time = Label::new(Some(&selected_email.time));
-    time.set_halign(gtk4::Align::Start);  // <-- BUG: Should be `time`, not `from`
-    time.add_css_class("viewer-header");  // <-- BUG: Should be `time`, not `from`
+    let time = Label::new(Some(&selected_email.time_string()));
+    time.set_halign(gtk4::Align::Start);
+    time.add_css_class("viewer-header");
 
     while let Some(child) = email_header_rc.borrow().first_child() {
         email_header_rc.borrow().remove(&child);

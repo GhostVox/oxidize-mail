@@ -22,7 +22,7 @@ impl DB {
         // Ensure parent directory exists
         if let Some(parent) = db_path.parent() {
             fs::create_dir_all(parent)
-                .map_err(|e| rusqlite::Error::InvalidPath(db_path.clone()))?;
+                .map_err(|_| rusqlite::Error::InvalidPath(db_path.clone()))?;
         }
 
         let mut conn = Connection::open(config.get_db())?;
