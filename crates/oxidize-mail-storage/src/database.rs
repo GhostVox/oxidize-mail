@@ -1,4 +1,6 @@
+use crate::queries;
 use oxidize_mail_types::AppConfig;
+use oxidize_mail_types::ParsedEmail;
 use rusqlite::{Connection, Result};
 use std::fs;
 
@@ -42,6 +44,35 @@ impl DB {
             .map(|m| m.version())
             .unwrap_or(0);
         Ok(version)
+    }
+    pub fn add_email(
+        &mut self,
+        email: ParsedEmail, /* parameters */
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // Implement email insertion logic here
+        self.conn.execute(
+            queries::ADD_EMAIL,
+            &[
+                &email.account_id,
+                &email.message_id,
+                &email.subject,
+                &email.sender,
+                &email.recipients,
+                &email.body_text,
+                &email.body_html,
+                &email.received_date,
+                &Some(match email.is_read {
+                    true => "TRUE".to_string(),
+                    false => "FALSE".to_string(),
+                }),
+                &Some(match email.is_starred {
+                    true => "TRUE".to_string(),
+                    false => "FALSE".to_string(),
+                }),
+                &email.folder,
+            ],
+        )?;
+        Ok(())
     }
 }
 

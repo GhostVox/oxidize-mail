@@ -33,5 +33,6 @@
 //! functions that will be replaced with actual storage implementation.
 
 mod database;
+mod queries;
 
 pub use database::DB;
