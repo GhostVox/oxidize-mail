@@ -196,9 +196,16 @@ impl ParseService {
     ///
     /// Returns `ParseError::InvalidFormat` if the email data cannot be parsed
     /// by the underlying MessageParser.
+    //FIXME: The hardcoded values in ParsedEmail::from_message should be replaced with actual data.
     pub fn parse_inc_email(&self, raw_email: &[u8]) -> Result<ParsedEmail, ParseError> {
         match self.parser.parse(raw_email) {
-            Some(msg) => Ok(ParsedEmail::from_message(msg)),
+            Some(msg) => Ok(ParsedEmail::from_message(
+                msg, // here to 5 lines below
+                false,
+                "hello".to_string(),
+                false,
+                None,
+            )),
             None => Err(ParseError::InvalidFormat(
                 "Failed to parse email".to_string(),
             )),

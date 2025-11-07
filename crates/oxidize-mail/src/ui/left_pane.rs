@@ -466,7 +466,7 @@ pub fn populate_email_list(
             let content_box = Box::new(Orientation::Vertical, 2);
             content_box.set_hexpand(true);
 
-            let sender_label = Label::new(e.from.as_deref());
+            let sender_label = Label::new(e.sender.as_deref());
             sender_label.set_halign(gtk4::Align::Start);
             sender_label.add_css_class("email-sender");
             sender_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
@@ -555,12 +555,17 @@ pub fn generate_sample_emails() -> HashMap<String, Vec<ParsedEmail>> {
                 .entry(f.to_string())
                 .or_insert_with(Vec::new)
                 .push(ParsedEmail {
+                    account_id: Some("sample_account".to_string()),
+                    message_id: Some(format!("<{}@example.com>", Faker.fake::<u64>())),
                     subject: Some(subject),
-                    from: Some(sender),
-                    to: None,
+                    sender: Some(sender),
+                    recipients: None,
                     body_text: Some(body.clone()),
                     body_html: None,
-                    timestamp: Some(time),
+                    received_date: Some(time),
+                    is_read: false,
+                    is_starred: false,
+                    folder: Some(f.to_string()),
                 });
         }
     }
@@ -614,16 +619,28 @@ fn populate_email_viewer(
     subject.set_halign(gtk4::Align::Start);
     subject.add_css_class("viewer-subject");
 
-    log::info!("Selected email from: {:?}", selected_email.from.as_deref());
+    log::info!(
+        "Selected email from: {:?}",
+        selected_email.sender.as_deref()
+    );
     let from = Label::new(Some(
-        selected_email.from.as_deref().unwrap_or("Unknown Sender"),
+        selected_email.sender.as_deref().unwrap_or("Unknown Sender"),
     ));
     from.set_halign(gtk4::Align::Start);
     from.add_css_class("viewer-header");
 
-    let time = Label::new(Some(&selected_email.time_string()));
-    time.set_halign(gtk4::Align::Start);
-    time.add_css_class("viewer-header");
+    log::info!(
+        "Selected email time: {:?}",
+        selected_email.received_date.as_deref()
+    );
+    let time = Label::new(Some(
+        selected_email
+            .received_date
+            .as_deref()
+            .unwrap_or("Unknown Time"),
+    ));
+    from.set_halign(gtk4::Align::Start);
+    from.add_css_class("viewer-header");
 
     while let Some(child) = email_header_rc.borrow().first_child() {
         email_header_rc.borrow().remove(&child);

@@ -36,12 +36,17 @@
 /// processing, such as email clients, parsers, or automation tools.
 #[derive(PartialEq, Debug)]
 pub struct ParsedEmail {
+    pub account_id: Option<String>,
+    pub message_id: Option<String>,
     pub subject: Option<String>,
-    pub from: Option<String>,
-    pub to: Option<String>,
+    pub sender: Option<String>,
+    pub recipients: Option<String>,
     pub body_text: Option<String>,
     pub body_html: Option<String>,
-    pub timestamp: Option<String>,
+    pub received_date: Option<String>,
+    pub is_read: bool,
+    pub is_starred: bool,
+    pub folder: Option<String>,
 }
 
 impl ParsedEmail {
@@ -89,16 +94,22 @@ impl ParsedEmail {
     /// - Only the first recipient in the "To" field is extracted
     /// - Only the first text and HTML body parts are extracted for simplicity
     /// - All fields are optional to handle incomplete or malformed emails gracefully
-    pub fn from_message(msg: mail_parser::Message) -> ParsedEmail {
+    pub fn from_message(
+        msg: mail_parser::Message,
+        seen: bool,
+        folder: String,
+        is_starred: bool,
+        account_id: Option<String>,
+    ) -> ParsedEmail {
         let subject = msg.subject().map(|s| s.to_string());
 
-        let from = msg
+        let sender = msg
             .from()
             .and_then(|addr| addr.first())
             .and_then(|a| a.address())
             .map(|s| s.to_string());
 
-        let to = msg
+        let recipients = msg
             .to()
             .and_then(|addr| addr.first())
             .and_then(|a| a.address())
@@ -107,14 +118,20 @@ impl ParsedEmail {
         let body_text = msg.body_text(0).map(|b| b.to_string());
         let body_html = msg.body_html(0).map(|b| b.to_string());
         let timestamp = msg.date();
+        let message_id = msg.message_id().map(|s| s.to_string());
 
         ParsedEmail {
+            account_id,
+            message_id,
             subject,
-            from,
-            to,
+            sender,
+            recipients,
             body_text,
             body_html,
-            timestamp: timestamp.map(|s| s.to_string()),
+            received_date: timestamp.map(|s| s.to_string()),
+            is_read: seen,
+            is_starred,
+            folder: Some(folder),
         }
     }
 
@@ -168,7 +185,7 @@ impl ParsedEmail {
 
     //TODO: this is a standin, implement proper formatting
     pub fn time_string(&self) -> String {
-        if let Some(timestamp) = &self.timestamp {
+        if let Some(timestamp) = &self.received_date {
             format!("{}", timestamp)
         } else {
             String::from("(No timestamp)")
